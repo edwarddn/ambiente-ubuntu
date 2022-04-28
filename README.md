@@ -1,2 +1,2 @@
-# ambiente-ubuntu
-Automatize a infraestrutura em Ubuntu
+# Automatize a infraestrutura em Ubuntu
+## UBUNTU 22.04 LTS
