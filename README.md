@@ -1,6 +1,10 @@
 # Automatize a infraestrutura
 
-## Install
+### OS requirements
+
+- Ubuntu Jammy 22.04 (LTS)
+
+### Install
 
 ```bash
 cd ~/Downloads
