@@ -47,14 +47,14 @@ removerJava() {
 
 		cd /opt/
 
-		rm /opt/$JAVA_FILE
-	    rm -R /opt/$JAVA_PATH
+		rm -f /opt/$JAVA_FILE
+	    rm -rf /opt/$JAVA_PATH
 
 	    unlink java
 	    unlink /usr/bin/java
 	    unlink /usr/bin/javac
 
-	    rm /etc/profile.d/java.sh
+	    rm -f /etc/profile.d/java.sh
 
 	    echo 'Instalação do Java foi removida com sucesso'
 	fi
@@ -93,13 +93,13 @@ removerMaven() {
 
 		cd /opt/
 
-		rm /opt/$MAVEN_FILE
-		rm -R /opt/$MAVEN_PATH
+		rm -f /opt/$MAVEN_FILE
+		rm -rf /opt/$MAVEN_PATH
 	    
 	    unlink maven
 	 	unlink /usr/bin/mvn
 
-		rm /etc/profile.d/maven.sh
+		rm -f /etc/profile.d/maven.sh
 
 		echo 'Instalação do Maven foi removida com sucesso'
 	fi
@@ -139,15 +139,15 @@ removerNode() {
 
 		cd /opt/
 
-		rm /opt/$NODE_FILE
-		rm -R /opt/$NODE_PATH
+		rm -f /opt/$NODE_FILE
+		rm -rf /opt/$NODE_PATH
 	    unlink node
 
 	 	unlink /usr/bin/node
 	 	unlink /usr/bin/npm
 	 	unlink /usr/bin/npx
 
-		rm /etc/profile.d/node.sh
+		rm -f /etc/profile.d/node.sh
 
 	    echo 'Instalação do node foi removida com sucesso'
 	fi
@@ -196,11 +196,24 @@ removerFontsMs() {
 }
 
 instalarDocker() {
+	apt-get install ca-certificates curl gnupg lsb-release
+
+	mkdir -p /etc/apt/keyrings
+ 	curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+	echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+	apt update
 	apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+	usermod -aG docker $SUDO_USER
 }
 
 removerDocker() {
-	apt remove -y docker-ce docker-ce-cli containerd.io docker-compose-plugin	
+	apt purge -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+	rm -rf /var/lib/docker
+ 	rm -rf /var/lib/containerd
+	rm -rf /etc/apt/keyrings
+	rm -f /etc/apt/sources.list.d/docker.list
 }
 
 instalarSublime() {
