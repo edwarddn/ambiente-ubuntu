@@ -2,6 +2,18 @@
 
 set -e
 
+JAVA_URL=https://download.java.net/java/GA/jdk17.0.2/dfd4a8d0985749f896bed50d7138ee7f/8/GPL/openjdk-17.0.2_linux-x64_bin.tar.gz
+JAVA_FILE=openjdk-17.0.2_linux-x64_bin.tar.gz
+JAVA_PATH=jdk-17.0.2
+
+MAVEN_URL=https://dlcdn.apache.org/maven/maven-3/3.8.5/binaries/apache-maven-3.8.5-bin.tar.gz
+MAVEN_FILE=apache-maven-3.8.5-bin.tar.gz
+MAVEN_PATH=apache-maven-3.8.5
+
+NODE_URL=https://nodejs.org/dist/v16.15.0/node-v16.15.0-linux-x64.tar.xz
+NODE_FILE=node-v16.15.0-linux-x64.tar.xz
+NODE_PATH=node-v16.15.0-linux-x64
+
 instalarJava() {
 
 	if [ -d "/opt/java" ]; then
@@ -11,10 +23,10 @@ instalarJava() {
 
 		cd /opt/
 
-		wget https://download.java.net/java/GA/jdk17.0.2/dfd4a8d0985749f896bed50d7138ee7f/8/GPL/openjdk-17.0.2_linux-x64_bin.tar.gz
+		wget $JAVA_URL
 
-		tar -xzvf openjdk-17.0.2_linux-x64_bin.tar.gz
-		ln -s /opt/jdk-17.0.2 java
+		tar -xzvf $JAVA_FILE
+		ln -s /opt/$JAVA_PATH java
 		ln -s /opt/java/bin/java /usr/bin/java
 		ln -s /opt/java/bin/javac /usr/bin/javac
 
@@ -35,8 +47,8 @@ removerJava() {
 
 		cd /opt/
 
-		rm /opt/openjdk-17.0.2_linux-x64_bin.tar.gz
-	    rm -R /opt/jdk-17.0.2 
+		rm /opt/$JAVA_FILE
+	    rm -R /opt/$JAVA_PATH
 
 	    unlink java
 	    unlink /usr/bin/java
@@ -57,11 +69,11 @@ instalarMaven() {
 
 		cd /opt/
 
-		 wget https://dlcdn.apache.org/maven/maven-3/3.8.5/binaries/apache-maven-3.8.5-bin.tar.gz
+		 wget $MAVEN_URL
 		
-	    tar -xzvf apache-maven-3.8.5-bin.tar.gz
+	    tar -xzvf $MAVEN_FILE
 	    
-	    ln -s /opt/apache-maven-3.8.5 maven
+	    ln -s /opt/$MAVEN_PATH maven
 	 	ln -s /opt/maven/bin/mvn /usr/bin/mvn
 
 		echo '#PATH for Maven' > /etc/profile.d/maven.sh
@@ -81,8 +93,8 @@ removerMaven() {
 
 		cd /opt/
 
-		rm /opt/apache-maven-3.8.5-bin.tar.gz
-		rm -R /opt/apache-maven-3.8.5
+		rm /opt/$MAVEN_FILE
+		rm -R /opt/$MAVEN_PATH
 	    
 	    unlink maven
 	 	unlink /usr/bin/mvn
@@ -102,10 +114,10 @@ instalarNode() {
 
 		cd /opt/
 
-		wget https://nodejs.org/dist/v16.14.2/node-v16.14.2-linux-x64.tar.xz
+		wget $NODE_URL
 
-	    tar -Jxvf node-v16.14.2-linux-x64.tar.xz
-	    ln -s /opt/node-v16.14.2-linux-x64 node
+	    tar -Jxvf $NODE_FILE
+	    ln -s /opt/$NODE_PATH node
 
 	 	ln -s /opt/node/bin/node /usr/bin/node
 	 	ln -s /opt/node/bin/npm /usr/bin/npm
@@ -127,8 +139,8 @@ removerNode() {
 
 		cd /opt/
 
-		rm /opt/node-v16.14.2-linux-x64.tar.xz
-		rm -R /opt/node-v16.14.2-linux-x64
+		rm /opt/$NODE_FILE
+		rm -R /opt/$NODE_PATH
 	    unlink node
 
 	 	unlink /usr/bin/node
@@ -183,6 +195,14 @@ removerFontsMs() {
 	apt remove -y ttf-mscorefonts-installer	
 }
 
+instalarDocker() {
+	apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+}
+
+removerDocker() {
+	apt remove -y docker-ce docker-ce-cli containerd.io docker-compose-plugin	
+}
+
 instalarSublime() {
 	snap install sublime-text --classic
 }
@@ -233,6 +253,7 @@ instalar() {
 	instalarNode
 	instalarFirewall
 	instalarGit
+	instalarDocker
 	instalarIntellij
 	instalarDatagrip
 	instalarSublime
@@ -250,6 +271,7 @@ remover() {
 	removerNode
 	removerFirewall
 	removerGit
+	removerDocker
 	removerIntellij
 	removerDatagrip
 	removerSublime
