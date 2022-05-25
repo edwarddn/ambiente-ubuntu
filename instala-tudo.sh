@@ -209,7 +209,10 @@ instalarDocker() {
 }
 
 removerDocker() {
-	apt purge -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+	apt purge -y docker-ce 
+	apt purge -y docker-ce-cli 
+	apt purge -y containerd.io 
+	apt purge -y docker-compose-plugin
 	rm -rf /var/lib/docker
  	rm -rf /var/lib/containerd
 	rm -rf /etc/apt/keyrings
