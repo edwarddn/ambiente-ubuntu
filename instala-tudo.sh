@@ -317,7 +317,7 @@ fi
 echo 'Olá,' $SUDO_USER
 
 while true; do
-    read -p "Deseja instalar? " sn
+    read -p "Deseja instalar? [s/n] " sn
     case $sn in
         [Ss]* ) instalar; break;;
         [Nn]* ) break;;
@@ -326,7 +326,7 @@ while true; do
 done
 
 while true; do
-    read -p "Deseja remover? " sn
+    read -p "Deseja remover? [s/n] " sn
     case $sn in
         [Ss]* ) remover; break;;
         [Nn]* ) break;;
