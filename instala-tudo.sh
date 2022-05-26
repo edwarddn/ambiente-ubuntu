@@ -272,7 +272,7 @@ removerAngularCli() {
   fi
 }
 
-instalarTerminalJafidelisTheme() {
+instalarTheme() {
   sudo -u $SUDO_USER echo "[legacy/profiles:]" >./terminal_jafidelis_theme.txt
   sudo -u $SUDO_USER echo "default='d1099164-5230-4164-a712-197838e23d61'" >>./terminal_jafidelis_theme.txt
   sudo -u $SUDO_USER echo "list=['b1dcc9dd-5262-4d8d-a863-c897e6d979b9', 'd1099164-5230-4164-a712-197838e23d61']" >>./terminal_jafidelis_theme.txt
@@ -295,9 +295,13 @@ instalarTerminalJafidelisTheme() {
   sudo -u $SUDO_USER DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${RUSER_UID}/bus" dconf load /org/gnome/terminal/ <./terminal_jafidelis_theme.txt
 
   rm -f ./terminal_jafidelis_theme.txt
+
+  sudo -u $SUDO_USER DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${RUSER_UID}/bus" gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
+  sudo -u $SUDO_USER DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${RUSER_UID}/bus" gsettings set org.gnome.shell.extensions.dash-to-dock dash-max-icon-size 28
+  sudo -u $SUDO_USER DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${RUSER_UID}/bus" gsettings set org.gnome.shell.extensions.ding icon-size 'small'
 }
 
-removerTerminalJafidelisTheme() {
+removerTheme() {
   sudo -u $SUDO_USER echo "[legacy/profiles:]" >./terminal_original_theme.txt
   sudo -u $SUDO_USER echo "default='b1dcc9dd-5262-4d8d-a863-c897e6d979b9'" >>./terminal_original_theme.txt
   sudo -u $SUDO_USER echo "list=['b1dcc9dd-5262-4d8d-a863-c897e6d979b9']" >>./terminal_original_theme.txt
@@ -307,6 +311,10 @@ removerTerminalJafidelisTheme() {
   sudo -u $SUDO_USER DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${RUSER_UID}/bus" dconf load /org/gnome/terminal/ <./terminal_original_theme.txt
 
   rm -f ./terminal_original_theme.txt
+
+  sudo -u $SUDO_USER DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${RUSER_UID}/bus" gsettings reset org.gnome.shell.extensions.dash-to-dock dash-max-icon-size
+  sudo -u $SUDO_USER DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${RUSER_UID}/bus" gsettings reset org.gnome.shell.extensions.ding icon-size
+  sudo -u $SUDO_USER DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${RUSER_UID}/bus" gsettings reset org.gnome.desktop.interface color-scheme
 }
 
 instalarCustomShell() {
@@ -338,7 +346,7 @@ instalar() {
   instalarFlatpak
   instalarFontsMs
   instalarAngularCli
-  instalarTerminalJafidelisTheme
+  instalarTheme
   instalarCustomShell
   reboot
 }
@@ -358,7 +366,7 @@ remover() {
   removerPostman
   removerCode
   removerFontsMs
-  removerTerminalJafidelisTheme
+  removerTheme
   removerCustomShell
   apt update
   apt upgrade -y
