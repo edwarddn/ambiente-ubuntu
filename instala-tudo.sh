@@ -312,7 +312,7 @@ removerTheme() {
 
   rm -f ./terminal_original_theme.txt
 
-  sudo -u $SUDO_USER DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${RUSER_UID}/bus" gsettings set org.gnome.desktop.interface color-scheme 'default'
+  sudo -u $SUDO_USER DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${RUSER_UID}/bus" gsettings set org.gnome.desktop.interface color-scheme 'prefer-light'
   sudo -u $SUDO_USER DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${RUSER_UID}/bus" gsettings reset org.gnome.desktop.interface color-scheme
   sudo -u $SUDO_USER DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${RUSER_UID}/bus" gsettings reset org.gnome.shell.extensions.dash-to-dock dash-max-icon-size
   sudo -u $SUDO_USER DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${RUSER_UID}/bus" gsettings reset org.gnome.shell.extensions.ding icon-size
