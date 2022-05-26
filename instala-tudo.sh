@@ -320,14 +320,16 @@ removerTheme() {
 
 instalarCustomShell() {
   rm -f '/home/'$SUDO_USER'/.bashrc'
-  sudo -u $SUDO_USER wget https://github.com/edwarddn/ambiente-ubuntu/raw/main/BASE_BASHRC
-  sudo -u $SUDO_USER cp ./BASE_BASHRC '/home/'$SUDO_USER'/.bashrc'
+  wget https://github.com/edwarddn/ambiente-ubuntu/raw/main/BASE_BASHRC
+  cp ./BASE_BASHRC '/home/'$SUDO_USER'/.bashrc'
   rm -f ./BASE_BASHRC
+  chown $SUDO_USER:$SUDO_USER '/home/'$SUDO_USER'/.bashrc'
 }
 
 removerCustomShell() {
   rm -f '/home/'$SUDO_USER'/.bashrc'
-  sudo -u $SUDO_USER cp '/etc/skel/.bashrc' '/home/'$SUDO_USER'/'
+  cp '/etc/skel/.bashrc' '/home/'$SUDO_USER'/'
+  chown $SUDO_USER:$SUDO_USER '/home/'$SUDO_USER'/.bashrc'
 }
 
 instalar() {
