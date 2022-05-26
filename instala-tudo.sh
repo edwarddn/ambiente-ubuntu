@@ -290,7 +290,6 @@ instalarTerminalJafidelisTheme() {
   echo "use-theme-transparency=false" >>./terminal_jafidelis_theme.txt
   echo "use-transparent-background=true" >>./terminal_jafidelis_theme.txt
   echo "visible-name='personal'" >>./terminal_jafidelis_theme.txt
-  echo "" >>./terminal_jafidelis_theme.txt
 
   dconf load /org/gnome/terminal/ <terminal_jafidelis_theme.txt
 
@@ -305,6 +304,20 @@ removerTerminalJafidelisTheme() {
   dconf load /org/gnome/terminal/ <terminal_original_theme.txt
 
   rm -f terminal_original_theme.txt
+}
+
+instalarCustomShell() {
+  rm -f '/home/'$SUDO_USER'/.bashrc'
+  wget https://github.com/edwarddn/ambiente-ubuntu/raw/main/BASE_BASHRC
+  cp ./BASE_BASHRC '/home/'$SUDO_USER'/.bashrc'
+  rm -f ./BASE_BASHRC
+  chown $SUDO_USER:$SUDO_USER '/home/'$SUDO_USER'/.bashrc'
+}
+
+removerCustomShell() {
+  rm -f '/home/'$SUDO_USER'/.bashrc'
+  cp '/etc/skel/.bashrc' '/home/'$SUDO_USER'/'
+  chown $SUDO_USER:$SUDO_USER '/home/'$SUDO_USER'/.bashrc'
 }
 
 instalar() {
@@ -325,6 +338,7 @@ instalar() {
   instalarFontsMs
   instalarAngularCli
   instalarTerminalJafidelisTheme
+  instalarCustomShell
   reboot
 }
 
@@ -344,6 +358,7 @@ remover() {
   removerCode
   removerFontsMs
   removerTerminalJafidelisTheme
+  removerCustomShell
   apt update
   apt upgrade -y
   apt autoremove -y
