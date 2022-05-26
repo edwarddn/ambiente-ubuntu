@@ -273,6 +273,40 @@ removerAngularCli() {
   fi
 }
 
+instalarTerminalJafidelisTheme() {
+  echo "[legacy/profiles:]" >./terminal_jafidelis_theme.txt
+  echo "default='d1099164-5230-4164-a712-197838e23d61'" >>./terminal_jafidelis_theme.txt
+  echo "list=['b1dcc9dd-5262-4d8d-a863-c897e6d979b9', 'd1099164-5230-4164-a712-197838e23d61']" >>./terminal_jafidelis_theme.txt
+  echo "" >>./terminal_jafidelis_theme.txt
+  echo "[legacy/profiles:/:d1099164-5230-4164-a712-197838e23d61]" >>./terminal_jafidelis_theme.txt
+  echo "background-color='rgb(35,34,34)'" >>./terminal_jafidelis_theme.txt
+  echo "background-transparency-percent=1" >>./terminal_jafidelis_theme.txt
+  echo "cursor-shape='block'" >>./terminal_jafidelis_theme.txt
+  echo "default-size-columns=90" >>./terminal_jafidelis_theme.txt
+  echo "default-size-rows=22" >>./terminal_jafidelis_theme.txt
+  echo "foreground-color='rgb(196,193,193)'" >>./terminal_jafidelis_theme.txt
+  echo "palette=['rgb(46,52,54)', 'rgb(204,0,0)', 'rgb(34,209,139)', 'rgb(196,160,0)', 'rgb(51,142,250)', 'rgb(117,80,123)', 'rgb(6,152,154)', 'rgb(211,215,207)', 'rgb(85,87,83)', 'rgb(239,41,41)', 'rgb(138,226,52)', 'rgb(252,233,79)', 'rgb(114,159,207)', 'rgb(173,127,168)', 'rgb(52,226,226)', 'rgb(238,238,236)']" >>./terminal_jafidelis_theme.txt
+  echo "use-theme-colors=false" >>./terminal_jafidelis_theme.txt
+  echo "use-theme-transparency=false" >>./terminal_jafidelis_theme.txt
+  echo "use-transparent-background=true" >>./terminal_jafidelis_theme.txt
+  echo "visible-name='personal'" >>./terminal_jafidelis_theme.txt
+  echo "" >>./terminal_jafidelis_theme.txt
+
+  dconf load /org/gnome/terminal/ <terminal_jafidelis_theme.txt
+
+  rm -f terminal_jafidelis_theme.txt
+}
+
+removerTerminalJafidelisTheme() {
+  echo "[legacy/profiles:]" >./terminal_original_theme.txt
+  echo "default='b1dcc9dd-5262-4d8d-a863-c897e6d979b9'" >>./terminal_original_theme.txt
+  echo "list=['b1dcc9dd-5262-4d8d-a863-c897e6d979b9']" >>./terminal_original_theme.txt
+
+  dconf load /org/gnome/terminal/ <terminal_original_theme.txt
+
+  rm -f terminal_original_theme.txt
+}
+
 instalar() {
   apt update
   apt upgrade -y
@@ -290,6 +324,7 @@ instalar() {
   instalarFlatpak
   instalarFontsMs
   instalarAngularCli
+  instalarTerminalJafidelisTheme
   reboot
 }
 
@@ -308,6 +343,7 @@ remover() {
   removerPostman
   removerCode
   removerFontsMs
+  removerTerminalJafidelisTheme
   apt update
   apt upgrade -y
   apt autoremove -y
