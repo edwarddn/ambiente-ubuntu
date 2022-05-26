@@ -215,9 +215,8 @@ instalarDocker() {
 
     apt update
     apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-
-    usermod -aG docker $SUDO_USER
   fi
+  usermod -aG docker $SUDO_USER
 }
 
 removerDocker() {
