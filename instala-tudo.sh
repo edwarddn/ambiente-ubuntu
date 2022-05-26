@@ -15,7 +15,6 @@ NODE_FILE=node-v16.15.0-linux-x64.tar.xz
 NODE_PATH=node-v16.15.0-linux-x64
 
 instalarJava() {
-
   if [ -d "/opt/java" ]; then
     echo 'O JAVA já foi instalado'
   else
@@ -39,7 +38,6 @@ instalarJava() {
 }
 
 removerJava() {
-
   if [ ! -d "/opt/java" ]; then
     echo 'O JAVA não foi instalado'
   else
@@ -61,7 +59,6 @@ removerJava() {
 }
 
 instalarMaven() {
-
   if [ -d "/opt/maven" ]; then
     echo 'O Maven já foi instalado'
   else
@@ -85,7 +82,6 @@ instalarMaven() {
 }
 
 removerMaven() {
-
   if [ ! -d "/opt/maven" ]; then
     echo 'O Maven não foi instalado'
   else
@@ -106,7 +102,6 @@ removerMaven() {
 }
 
 instalarNode() {
-
   if [ -d "/opt/node" ]; then
     echo 'O node já foi instalado'
   else
@@ -131,7 +126,6 @@ instalarNode() {
 }
 
 removerNode() {
-
   if [ ! -d "/opt/node" ]; then
     echo 'O node não foi instalado'
   else
@@ -187,6 +181,20 @@ removerGit() {
   apt remove -y git
 }
 
+instalarFlatpak() {
+  apt install -y flatpak
+  flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+  flatpak install --assumeyes flathub com.syntevo.SmartGit
+}
+
+removerFlatpak() {
+  if [ command -v flatpak ] &>/dev/null; then
+    flatpak remove --assumeyes com.syntevo.SmartGit
+    flatpak remove --unused --assumeyes
+  fi
+  apt remove -y flatpak
+}
+
 instalarFontsMs() {
   apt install -y ttf-mscorefonts-installer
 }
@@ -196,11 +204,9 @@ removerFontsMs() {
 }
 
 instalarDocker() {
-
   if [ -f "/etc/apt/sources.list.d/docker.list" ]; then
     echo 'O Docker já foi instalado'
   else
-
     apt install -y ca-certificates curl gnupg lsb-release
 
     mkdir -p /etc/apt/keyrings
@@ -215,11 +221,9 @@ instalarDocker() {
 }
 
 removerDocker() {
-
   if [ ! -f "/etc/apt/sources.list.d/docker.list" ]; then
     echo 'O Docker não foi instalado'
   else
-
     apt purge -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
     rm -rf /var/lib/docker
     rm -rf /var/lib/containerd
@@ -283,6 +287,7 @@ instalar() {
   instalarSublime
   instalarPostman
   instalarCode
+  instalarFlatpak
   instalarFontsMs
   instalarAngularCli
   reboot
@@ -290,6 +295,7 @@ instalar() {
 
 remover() {
   removerAngularCli
+  removerFlatpak
   removerJava
   removerMaven
   removerNode
