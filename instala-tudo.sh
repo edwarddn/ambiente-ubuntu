@@ -188,7 +188,7 @@ instalarFlatpak() {
 }
 
 removerFlatpak() {
-  if [ command -v flatpak ] &>/dev/null; then
+  if [ -f "/bin/flatpak" ]; then
     flatpak remove --assumeyes com.syntevo.SmartGit
     flatpak remove --unused --assumeyes
   fi
@@ -329,7 +329,7 @@ while true; do
     break
     ;;
   [Nn]*) break ;;
-  *) echo "Responda sim ou não." ;;
+  *) echo "Responda sim[s] ou não[n]." ;;
   esac
 done
 
@@ -341,6 +341,6 @@ while true; do
     break
     ;;
   [Nn]*) break ;;
-  *) echo "Responda sim ou não." ;;
+  *) echo "Responda sim[s] ou não[n]." ;;
   esac
 done
