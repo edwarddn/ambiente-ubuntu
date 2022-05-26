@@ -294,7 +294,7 @@ instalarTerminalJafidelisTheme() {
   RUSER_UID=$(id -u ${RUID})
   sudo -u $SUDO_USER DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${RUSER_UID}/bus" dconf load /org/gnome/terminal/ <./terminal_jafidelis_theme.txt
 
-  sudo -u $SUDO_USER rm -f ./terminal_jafidelis_theme.txt
+  rm -f ./terminal_jafidelis_theme.txt
 }
 
 removerTerminalJafidelisTheme() {
@@ -306,18 +306,18 @@ removerTerminalJafidelisTheme() {
   RUSER_UID=$(id -u ${RUID})
   sudo -u $SUDO_USER DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${RUSER_UID}/bus" dconf load /org/gnome/terminal/ <./terminal_original_theme.txt
 
-  sudo -u $SUDO_USER rm -f ./terminal_original_theme.txt
+  rm -f ./terminal_original_theme.txt
 }
 
 instalarCustomShell() {
-  sudo -u $SUDO_USER rm -f '/home/'$SUDO_USER'/.bashrc'
+  rm -f '/home/'$SUDO_USER'/.bashrc'
   sudo -u $SUDO_USER wget https://github.com/edwarddn/ambiente-ubuntu/raw/main/BASE_BASHRC
   sudo -u $SUDO_USER cp ./BASE_BASHRC '/home/'$SUDO_USER'/.bashrc'
-  sudo -u $SUDO_USER rm -f ./BASE_BASHRC
+  rm -f ./BASE_BASHRC
 }
 
 removerCustomShell() {
-  sudo -u $SUDO_USER rm -f '/home/'$SUDO_USER'/.bashrc'
+  rm -f '/home/'$SUDO_USER'/.bashrc'
   sudo -u $SUDO_USER cp '/etc/skel/.bashrc' '/home/'$SUDO_USER'/'
 }
 
