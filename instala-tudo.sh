@@ -6,9 +6,9 @@ JAVA_URL=https://download.java.net/java/GA/jdk17.0.2/dfd4a8d0985749f896bed50d713
 JAVA_FILE=openjdk-17.0.2_linux-x64_bin.tar.gz
 JAVA_PATH=jdk-17.0.2
 
-MAVEN_URL=https://dlcdn.apache.org/maven/maven-3/3.8.5/binaries/apache-maven-3.8.5-bin.tar.gz
-MAVEN_FILE=apache-maven-3.8.5-bin.tar.gz
-MAVEN_PATH=apache-maven-3.8.5
+MAVEN_URL=https://dlcdn.apache.org/maven/maven-3/3.8.6/binaries/apache-maven-3.8.6-bin.tar.gz
+MAVEN_FILE=apache-maven-3.8.6-bin.tar.gz
+MAVEN_PATH=apache-maven-3.8.6
 
 NODE_URL=https://nodejs.org/dist/v16.15.0/node-v16.15.0-linux-x64.tar.xz
 NODE_FILE=node-v16.15.0-linux-x64.tar.xz
