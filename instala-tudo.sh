@@ -2,9 +2,9 @@
 
 set -e
 
-JAVA_URL=https://download.java.net/java/GA/jdk17.0.2/dfd4a8d0985749f896bed50d7138ee7f/8/GPL/openjdk-17.0.2_linux-x64_bin.tar.gz
-JAVA_FILE=openjdk-17.0.2_linux-x64_bin.tar.gz
-JAVA_PATH=jdk-17.0.2
+JAVA_URL=https://github.com/graalvm/graalvm-ce-builds/releases/download/vm-22.1.0/graalvm-ce-java17-linux-amd64-22.1.0.tar.gz
+JAVA_FILE=graalvm-ce-java17-linux-amd64-22.1.0.tar.gz
+JAVA_PATH=graalvm-ce-java17-22.1.0
 
 MAVEN_URL=https://dlcdn.apache.org/maven/maven-3/3.8.6/binaries/apache-maven-3.8.6-bin.tar.gz
 MAVEN_FILE=apache-maven-3.8.6-bin.tar.gz
@@ -28,6 +28,10 @@ instalarJava() {
     ln -s /opt/$JAVA_PATH java
     ln -s /opt/java/bin/java /usr/bin/java
     ln -s /opt/java/bin/javac /usr/bin/javac
+    
+    ln -s /opt/java/bin/js /usr/bin/js
+    ln -s /opt/java/bin/lli /usr/bin/lli
+    ln -s /opt/java/bin/gu /usr/bin/gu
 
     echo '#PATH for Java' >/etc/profile.d/java.sh
     echo 'JAVA_HOME=/opt/java' >>/etc/profile.d/java.sh
@@ -51,6 +55,10 @@ removerJava() {
     unlink java
     unlink /usr/bin/java
     unlink /usr/bin/javac
+    
+    unlink /usr/bin/js
+    unlink /usr/bin/lli
+    unlink /usr/bin/gu
 
     rm -f /etc/profile.d/java.sh
 
