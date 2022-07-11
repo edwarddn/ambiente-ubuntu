@@ -10,9 +10,9 @@ MAVEN_URL=https://dlcdn.apache.org/maven/maven-3/3.8.6/binaries/apache-maven-3.8
 MAVEN_FILE=apache-maven-3.8.6-bin.tar.gz
 MAVEN_PATH=apache-maven-3.8.6
 
-NODE_URL=https://nodejs.org/dist/v16.15.0/node-v16.15.0-linux-x64.tar.xz
-NODE_FILE=node-v16.15.0-linux-x64.tar.xz
-NODE_PATH=node-v16.15.0-linux-x64
+NODE_URL=https://nodejs.org/dist/v16.16.0/node-v16.16.0-linux-x64.tar.xz
+NODE_FILE=node-v16.16.0-linux-x64.tar.xz
+NODE_PATH=node-v16.16.0-linux-x64
 
 instalarJava() {
   if [ -d "/opt/java" ]; then
@@ -241,10 +241,12 @@ removerDocker() {
 
 instalarSublime() {
   snap install sublime-text --classic
+  sed -i "s/org.gnome.gedit/sublime-text/;" /usr/share/applications/defaults.list
 }
 
 removerSublime() {
   snap remove sublime-text
+  sed -i "s/sublime-text/org.gnome.gedit/;" /usr/share/applications/defaults.list
 }
 
 instalarPostman() {
