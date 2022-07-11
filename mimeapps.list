@@ -1,0 +1,25 @@
+[Default Applications]
+application/x-perl=sublime-text_subl_subl.desktop
+text/plain=sublime-text_subl.desktop
+text/x-chdr=sublime-text_subl_subl.desktop
+text/x-csrc=sublime-text_subl_subl.desktop
+text/x-dtd=sublime-text_subl_subl.desktop
+text/x-java=sublime-text_subl_subl.desktop
+text/mathml=sublime-text_subl_subl.desktop
+text/x-python=sublime-text_subl_subl.desktop
+text/x-sql=sublime-text_subl_subl.desktop
+text/xml=sublime-text_subl_subl.desktop
+application/x-shellscript=sublime-text_subl.desktop
+
+[Added Associations]
+application/x-perl=sublime-text_subl_subl.desktop;
+text/plain=sublime-text_subl.desktop;
+text/x-chdr=sublime-text_subl_subl.desktop;
+text/x-csrc=sublime-text_subl_subl.desktop;
+text/x-dtd=sublime-text_subl_subl.desktop;
+text/x-java=sublime-text_subl_subl.desktop;
+text/mathml=sublime-text_subl_subl.desktop;
+text/x-python=sublime-text_subl_subl.desktop;
+text/x-sql=sublime-text_subl_subl.desktop;
+text/xml=sublime-text_subl_subl.desktop;
+application/x-shellscript=sublime-text_subl.desktop;

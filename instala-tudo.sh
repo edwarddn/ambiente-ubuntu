@@ -241,12 +241,15 @@ removerDocker() {
 
 instalarSublime() {
   snap install sublime-text --classic
-  sed -i "s/org.gnome.gedit/sublime-text/;" /usr/share/applications/defaults.list
+
+  rm -f '/home/'$SUDO_USER'/.config/mimeapps.list'
+  wget https://github.com/edwarddn/ambiente-ubuntu/raw/main/mimeapps.list -P '/home/'$SUDO_USER'/.config/'
+  chown $SUDO_USER:$SUDO_USER '/home/'$SUDO_USER'/.config/mimeapps.list'
 }
 
 removerSublime() {
   snap remove sublime-text
-  sed -i "s/sublime-text/org.gnome.gedit/;" /usr/share/applications/defaults.list
+  rm -f '/home/'$SUDO_USER'/.config/mimeapps.list'
 }
 
 instalarPostman() {
@@ -330,9 +333,7 @@ removerTheme() {
 
 instalarCustomShell() {
   rm -f '/home/'$SUDO_USER'/.bashrc'
-  wget https://github.com/edwarddn/ambiente-ubuntu/raw/main/BASE_BASHRC
-  cp ./BASE_BASHRC '/home/'$SUDO_USER'/.bashrc'
-  rm -f ./BASE_BASHRC
+  wget https://github.com/edwarddn/ambiente-ubuntu/raw/main/.bashrc -P '/home/'$SUDO_USER'/'
   chown $SUDO_USER:$SUDO_USER '/home/'$SUDO_USER'/.bashrc'
 }
 
