@@ -333,7 +333,7 @@ removerTheme() {
 
 instalarCustomShell() {
   rm -f '/home/'$SUDO_USER'/.bashrc'
-  wget https://github.com/edwarddn/ambiente-ubuntu/raw/main/.bashrc -P '/home/'$SUDO_USER'/'
+  wget https://raw.githubusercontent.com/edwarddn/ambiente-ubuntu/main/.bashrc -P '/home/'$SUDO_USER'/'
   chown $SUDO_USER:$SUDO_USER '/home/'$SUDO_USER'/.bashrc'
 }
 
