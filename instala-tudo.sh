@@ -2,14 +2,12 @@
 
 set -e
 
-# --- Definições de Versão (Pinned Versions) ---
+# --- Definições de Versão e URLs ---
 JAVA_VERSION_PREFIX="25.*-librca"
 NODE_VERSION="24"
+REPO_URL="https://raw.githubusercontent.com/edwarddn/ambiente-ubuntu/main"
 
 # --- Helpers de Arquitetura ---
-
-# Obtém o diretório onde o script está localizado
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 run_as_user() {
   sudo -u "$SUDO_USER" bash -c "$1"
@@ -39,14 +37,10 @@ instalarZsh() {
   echo 'Configurando Powerlevel10k no .zshrc...'
   run_as_user "sed -i 's/ZSH_THEME=\"robbyrussell\"/ZSH_THEME=\"powerlevel10k\/powerlevel10k\"/g' ~/.zshrc"
   
-  # Injetar a configuração do p10k se o arquivo existir no repositório
-  if [ -f "$SCRIPT_DIR/.p10k.zsh" ]; then
-    echo 'Injetando configuração personalizada do Powerlevel10k...'
-    cp "$SCRIPT_DIR/.p10k.zsh" "/home/$SUDO_USER/"
-    chown "$SUDO_USER:$SUDO_USER" "/home/$SUDO_USER/.p10k.zsh"
-    # Garante que o .zshrc carregue o .p10k.zsh no topo
-    run_as_user "sed -i '1i[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh' ~/.zshrc"
-  fi
+  echo 'Baixando configuração personalizada do Powerlevel10k...'
+  run_as_user "wget $REPO_URL/.p10k.zsh -O ~/.p10k.zsh"
+  # Garante que o .zshrc carregue o .p10k.zsh no topo
+  run_as_user "sed -i '1i[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh' ~/.zshrc"
 
   echo 'Instalando plugins adicionais do ZSH...'
   run_as_user 'git clone https://github.com/zsh-users/zsh-autosuggestions.git ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autosuggestions'
@@ -66,17 +60,18 @@ removerZsh() {
 }
 
 instalarFontes() {
-  echo 'Instalando fontes MesloLGS NF...'
+  echo 'Baixando e instalando fontes MesloLGS NF...'
   local FONT_DIR="/home/$SUDO_USER/.local/share/fonts"
   run_as_user "mkdir -p $FONT_DIR"
   
-  if [ -d "$SCRIPT_DIR/fonts" ]; then
-    cp "$SCRIPT_DIR/fonts"/*.ttf "$FONT_DIR/"
-    chown "$SUDO_USER:$SUDO_USER" "$FONT_DIR"/*.ttf
-    run_as_user "fc-cache -f"
-  else
-    echo "Aviso: Pasta de fontes não encontrada em $SCRIPT_DIR/fonts"
-  fi
+  local BASE_FONT_URL="https://github.com/romkatv/powerlevel10k-media/raw/master"
+  
+  run_as_user "wget $BASE_FONT_URL/MesloLGS%20NF%20Regular.ttf -P $FONT_DIR/"
+  run_as_user "wget $BASE_FONT_URL/MesloLGS%20NF%20Bold.ttf -P $FONT_DIR/"
+  run_as_user "wget $BASE_FONT_URL/MesloLGS%20NF%20Italic.ttf -P $FONT_DIR/"
+  run_as_user "wget $BASE_FONT_URL/MesloLGS%20NF%20Bold%20Italic.ttf -P $FONT_DIR/"
+  
+  run_as_user "fc-cache -f"
 }
 
 removerFontes() {
@@ -101,6 +96,8 @@ removerSdkman() {
 
 instalarJava() {
   instalarSdkman
+  
+  # Busca a versão estável mais recente da BellSoft Liberica que combine com o prefixo
   JAVA_VERSION=$(run_as_user "$(source_sdkman) && sdk list java | grep \"$JAVA_VERSION_PREFIX\" | grep -v '\-fx' | grep -v '\-ea' | head -n 1 | awk '{print \$NF}'")
   
   if [ -z "$JAVA_VERSION" ]; then
@@ -265,12 +262,10 @@ instalarFlatpaks() {
   flatpak install --assumeyes flathub com.sublimetext.three
   flatpak install --assumeyes flathub com.getpostman.Postman
 
-  if [ -f "$SCRIPT_DIR/mimeapps.list" ]; then
-    rm -f "/home/$SUDO_USER/.config/mimeapps.list"
-    cp "$SCRIPT_DIR/mimeapps.list" "/home/$SUDO_USER/.config/"
-    chown "$SUDO_USER:$SUDO_USER" "/home/$SUDO_USER/.config/mimeapps.list"
-    sed -i 's/sublime-text_subl.desktop/com.sublimetext.three.desktop/g' "/home/$SUDO_USER/.config/mimeapps.list"
-  fi
+  echo 'Baixando e configurando mimeapps.list...'
+  rm -f "/home/$SUDO_USER/.config/mimeapps.list"
+  run_as_user "wget $REPO_URL/mimeapps.list -O ~/.config/mimeapps.list"
+  run_as_user "sed -i 's/sublime-text_subl.desktop/com.sublimetext.three.desktop/g' ~/.config/mimeapps.list"
 }
 
 removerFlatpaks() {
@@ -297,8 +292,8 @@ instalar() {
   apt update
   apt upgrade -y
   
-  echo 'Instalando ferramentas básicas (Git, Curl, Zip)...'
-  apt install -y git curl zip unzip
+  echo 'Instalando ferramentas básicas (Git, Curl, Zip, Wget)...'
+  apt install -y git curl zip unzip wget
   
   instalarZsh
   instalarFontes
@@ -325,22 +320,26 @@ remover() {
   removerDocker
   removerJetBrainsToolbox
   removerFlatpaks
-  apt update
-  apt upgrade -y
   apt autoremove -y
   echo "Ambiente removido. Reinicie o sistema."
 }
 
 # Verificação de segurança
 if [ "$EUID" -ne 0 ]; then
-  echo "Erro: Execute o script com sudo para que ele possa gerenciar pacotes e permissões."
+  echo "Erro: Execute o script com sudo ou como root."
   exit 1
 fi
 
-if [ -z "$SUDO_USER" ]; then
-  echo "Erro: SUDO_USER não detectado. Use 'sudo ./instala-tudo.sh'."
+# Tenta detectar o usuário real que chamou o sudo, mesmo em pipes
+REAL_USER=${SUDO_USER:-$(logname 2>/dev/null || echo $USER)}
+
+if [ -z "$REAL_USER" ] || [ "$REAL_USER" == "root" ]; then
+  echo "Erro: Não foi possível detectar o usuário não-root. Use 'sudo bash script.sh'."
   exit 1
 fi
+
+# Exporta para ser usado pelas funções
+SUDO_USER=$REAL_USER
 
 echo "Olá, $SUDO_USER. Iniciando automação de ambiente para Pop!_OS 24.04..."
 

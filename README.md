@@ -33,13 +33,12 @@ Este script automatiza a configuração de um ambiente de desenvolvimento comple
 - **Sublime Text:** Instalado e configurado como editor de texto padrão.
 - **Postman:** Ferramenta completa para testes de API.
 
-### Como instalar
+### Como instalar (One-Liner)
+
+Basta rodar o comando abaixo no seu terminal:
 
 ```bash
-cd ~/Downloads
-wget https://github.com/edwarddn/ambiente-ubuntu/raw/main/instala-tudo.sh
-chmod +x instala-tudo.sh
-sudo ./instala-tudo.sh
+curl -sL https://raw.githubusercontent.com/edwarddn/ambiente-ubuntu/main/instala-tudo.sh | sudo bash
 ```
 
 ---
