@@ -21,8 +21,8 @@ Este script automatiza a configuração de um ambiente de desenvolvimento comple
 - **Fontes MesloLGS NF:** Instalação automática das fontes necessárias para suporte a ícones no terminal.
 
 #### 🛠️ Toolchain de Desenvolvimento
-- **Java & Build:** Java BellSoft Liberica (Última LTS) e Maven (Última estável) via **SDKMAN**.
-- **Frontend:** Node.js v24 via **NVM** e Angular CLI.
+- **Java & Build:** Java BellSoft Liberica **v25 (LTS)** e Maven (Última estável) via **SDKMAN**.
+- **Frontend:** Node.js **v24 (LTS)** via **NVM** e Angular CLI.
 - **JetBrains Toolbox:** Centralizador de IDEs instalado em `~/.local/opt/jetbrains-toolbox`.
 
 #### 🐳 Infraestrutura Docker

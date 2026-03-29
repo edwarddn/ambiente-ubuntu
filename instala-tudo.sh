@@ -2,6 +2,10 @@
 
 set -e
 
+# --- Definições de Versão (Pinned Versions) ---
+JAVA_VERSION_PREFIX="25.*-librca"
+NODE_VERSION="24"
+
 # --- Helpers de Arquitetura ---
 
 # Obtém o diretório onde o script está localizado
@@ -81,18 +85,26 @@ removerFontes() {
   run_as_user "fc-cache -f"
 }
 
-instalarJava() {
+instalarSdkman() {
   if [ ! -d "/home/$SUDO_USER/.sdkman" ]; then
     echo 'Instalando SDKMAN...'
-    apt install -y zip unzip curl
     run_as_user 'curl -s "https://get.sdkman.io" | bash'
   fi
+}
 
-  # Busca a versão estável mais recente da BellSoft Liberica (LTS atual)
-  JAVA_VERSION=$(run_as_user "$(source_sdkman) && sdk list java | grep 'librca' | grep -v '\-fx' | grep -v '\-ea' | head -n 1 | awk '{print \$NF}'")
+removerSdkman() {
+  if [ -d "/home/$SUDO_USER/.sdkman" ]; then
+    echo 'Removendo SDKMAN...'
+    rm -rf "/home/$SUDO_USER/.sdkman"
+  fi
+}
+
+instalarJava() {
+  instalarSdkman
+  JAVA_VERSION=$(run_as_user "$(source_sdkman) && sdk list java | grep \"$JAVA_VERSION_PREFIX\" | grep -v '\-fx' | grep -v '\-ea' | head -n 1 | awk '{print \$NF}'")
   
   if [ -z "$JAVA_VERSION" ]; then
-    echo "Erro: Java Liberica não encontrado no SDKMAN."
+    echo "Erro: Java com prefixo $JAVA_VERSION_PREFIX não encontrado no SDKMAN."
     return 1
   fi
 
@@ -102,7 +114,9 @@ instalarJava() {
 
 removerJava() {
   if [ -d "/home/$SUDO_USER/.sdkman" ]; then
+    # Busca todas as versões da Liberica instaladas para remover
     JAVA_VERSIONS=$(run_as_user "$(source_sdkman) && sdk list java | grep 'installed' | grep 'librca' | awk '{print \$NF}'")
+    
     if [ ! -z "$JAVA_VERSIONS" ]; then
       for ver in $JAVA_VERSIONS; do
         echo "Removendo Java $ver..."
@@ -113,7 +127,7 @@ removerJava() {
 }
 
 instalarMaven() {
-  if [ ! -d "/home/$SUDO_USER/.sdkman" ]; then instalarJava; fi
+  instalarSdkman
   echo "Instalando a versão estável mais recente do Maven via SDKMAN..."
   run_as_user "$(source_sdkman) && sdk install maven"
 }
@@ -133,14 +147,15 @@ instalarNode() {
     echo 'Instalando NVM...'
     run_as_user 'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash'
   fi
-  echo 'Instalando Node.js v24 via NVM...'
-  run_as_user "$(source_nvm) && nvm install 24 && nvm use 24 && nvm alias default 24"
+  echo "Instalando Node.js v$NODE_VERSION via NVM..."
+  run_as_user "$(source_nvm) && nvm install $NODE_VERSION && nvm use $NODE_VERSION && nvm alias default $NODE_VERSION"
 }
 
 removerNode() {
   if [ -d "/home/$SUDO_USER/.nvm" ]; then
-    echo 'Removendo Node.js v24...'
-    run_as_user "$(source_nvm) && nvm uninstall 24"
+    echo "Removendo Node.js v$NODE_VERSION..."
+    run_as_user "$(source_nvm) && nvm uninstall $NODE_VERSION"
+    rm -rf "/home/$SUDO_USER/.nvm"
   fi
 }
 
@@ -161,12 +176,10 @@ instalarJetBrainsToolbox() {
   fi
 
   echo 'Buscando versão mais recente do JetBrains Toolbox...'
-  # URL da API que redireciona para o tar.gz mais novo
   local API_URL="https://data.services.jetbrains.com/products/releases?code=TBA&latest=true&type=release"
   local DOWNLOAD_URL=$(curl -sL "$API_URL" | grep -Po '"linux":\{"link":"\K[^"]*')
   
   if [ -z "$DOWNLOAD_URL" ]; then
-    # Fallback para versão conhecida se a API falhar
     DOWNLOAD_URL="https://download.jetbrains.com/toolbox/jetbrains-toolbox-2.3.1.31116.tar.gz"
   fi
 
@@ -249,17 +262,13 @@ removerDocker() {
 
 instalarFlatpaks() {
   echo 'Instalando apps via Flatpak...'
-  
-  # Instalando Sublime Text e Postman via Flatpak
   flatpak install --assumeyes flathub com.sublimetext.three
   flatpak install --assumeyes flathub com.getpostman.Postman
 
-  # Configuração do mimeapps para o Sublime Flatpak
   if [ -f "$SCRIPT_DIR/mimeapps.list" ]; then
     rm -f "/home/$SUDO_USER/.config/mimeapps.list"
     cp "$SCRIPT_DIR/mimeapps.list" "/home/$SUDO_USER/.config/"
     chown "$SUDO_USER:$SUDO_USER" "/home/$SUDO_USER/.config/mimeapps.list"
-    # Ajuste no mimeapps para apontar para o Flatpak do Sublime
     sed -i 's/sublime-text_subl.desktop/com.sublimetext.three.desktop/g' "/home/$SUDO_USER/.config/mimeapps.list"
   fi
 }
@@ -305,12 +314,13 @@ instalar() {
 }
 
 remover() {
+  removerAngularCli
+  removerMaven
+  removerJava
+  removerSdkman
+  removerNode
   removerZsh
   removerFontes
-  removerAngularCli
-  removerJava
-  removerMaven
-  removerNode
   removerFirewall
   removerDocker
   removerJetBrainsToolbox
