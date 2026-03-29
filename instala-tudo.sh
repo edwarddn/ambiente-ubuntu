@@ -187,14 +187,6 @@ removerJetBrainsToolbox() {
   rm -f "/home/$SUDO_USER/.local/share/applications/jetbrains-toolbox.desktop"
 }
 
-instalarGit() {
-  apt install -y git
-}
-
-removerGit() {
-  apt remove -y git
-}
-
 instalarDocker() {
   if [ -f "/etc/apt/sources.list.d/docker.sources" ]; then
     echo 'O Docker já foi instalado'
@@ -295,13 +287,16 @@ removerAngularCli() {
 instalar() {
   apt update
   apt upgrade -y
+  
+  echo 'Instalando ferramentas básicas (Git, Curl, Zip)...'
+  apt install -y git curl zip unzip
+  
   instalarZsh
   instalarFontes
   instalarJava
   instalarMaven
   instalarNode
   instalarFirewall
-  instalarGit
   instalarDocker
   instalarJetBrainsToolbox
   instalarFlatpaks
@@ -317,7 +312,6 @@ remover() {
   removerMaven
   removerNode
   removerFirewall
-  removerGit
   removerDocker
   removerJetBrainsToolbox
   removerFlatpaks
