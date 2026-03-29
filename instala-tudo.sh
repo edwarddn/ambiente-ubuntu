@@ -10,7 +10,7 @@ REPO_URL="https://raw.githubusercontent.com/edwarddn/ambiente-ubuntu/main"
 # --- Helpers de Arquitetura ---
 
 run_as_user() {
-  sudo -u "$SUDO_USER" bash -c "$1"
+  sudo -u "$SUDO_USER" env HOME="/home/$SUDO_USER" bash -c "$1"
 }
 
 source_sdkman() {
@@ -258,14 +258,23 @@ removerDocker() {
 }
 
 instalarFlatpaks() {
+  echo 'Configurando suporte a Flatpak...'
+  if ! command -v flatpak &> /dev/null; then
+    apt install -y flatpak
+  fi
+  
+  # Adiciona o flathub se não existir
+  flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+
   echo 'Instalando apps via Flatpak...'
   flatpak install --assumeyes flathub com.sublimetext.three
   flatpak install --assumeyes flathub com.getpostman.Postman
 
   echo 'Baixando e configurando mimeapps.list...'
-  rm -f "/home/$SUDO_USER/.config/mimeapps.list"
-  run_as_user "wget $REPO_URL/mimeapps.list -O ~/.config/mimeapps.list"
-  run_as_user "sed -i 's/sublime-text_subl.desktop/com.sublimetext.three.desktop/g' ~/.config/mimeapps.list"
+  local MIME_FILE="/home/$SUDO_USER/.config/mimeapps.list"
+  run_as_user "mkdir -p /home/$SUDO_USER/.config"
+  run_as_user "wget $REPO_URL/mimeapps.list -O $MIME_FILE"
+  run_as_user "sed -i 's/sublime-text_subl.desktop/com.sublimetext.three.desktop/g' $MIME_FILE"
 }
 
 removerFlatpaks() {
@@ -331,7 +340,7 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # Tenta detectar o usuário real que chamou o sudo, mesmo em pipes
-REAL_USER=${SUDO_USER:-$(logname 2>/dev/null || echo $USER)}
+REAL_USER=${SUDO_USER:-$(logname 2>/dev/null || whoami)}
 
 if [ -z "$REAL_USER" ] || [ "$REAL_USER" == "root" ]; then
   echo "Erro: Não foi possível detectar o usuário não-root. Use 'sudo bash script.sh'."
@@ -344,7 +353,7 @@ SUDO_USER=$REAL_USER
 echo "Olá, $SUDO_USER. Iniciando automação de ambiente para Pop!_OS 24.04..."
 
 while true; do
-  read -p "Deseja instalar o ambiente completo? [s/n] " sn
+  read -p "Deseja instalar o ambiente completo? [s/n] " sn </dev/tty
   case $sn in
     [Ss]*) instalar; break ;;
     [Nn]*) break ;;
@@ -353,7 +362,7 @@ while true; do
 done
 
 while true; do
-  read -p "Deseja remover o ambiente (limpeza completa)? [s/n] " sn
+  read -p "Deseja remover o ambiente (limpeza completa)? [s/n] " sn </dev/tty
   case $sn in
     [Ss]*) remover; break ;;
     [Nn]*) break ;;
