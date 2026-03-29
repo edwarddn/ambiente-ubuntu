@@ -9,16 +9,24 @@ REPO_URL="https://raw.githubusercontent.com/edwarddn/ambiente-ubuntu/main"
 
 # --- Helpers de Arquitetura ---
 
+user_home() {
+  getent passwd "$SUDO_USER" | cut -d: -f6
+}
+
 run_as_user() {
-  sudo -u "$SUDO_USER" env HOME="/home/$SUDO_USER" bash -c "$1"
+  sudo -u "$SUDO_USER" env HOME="$USER_HOME" bash -c "$1"
 }
 
 source_sdkman() {
-  echo "source \"/home/$SUDO_USER/.sdkman/bin/sdkman-init.sh\""
+  echo "source \"$USER_HOME/.sdkman/bin/sdkman-init.sh\""
 }
 
 source_nvm() {
-  echo "export NVM_DIR=\"/home/$SUDO_USER/.nvm\" && [ -s \"\$NVM_DIR/nvm.sh\" ] && \. \"\$NVM_DIR/nvm.sh\""
+  echo "export NVM_DIR=\"$USER_HOME/.nvm\" && [ -s \"\$NVM_DIR/nvm.sh\" ] && \. \"\$NVM_DIR/nvm.sh\""
+}
+
+remove_user_path() {
+  rm -rf "$USER_HOME/$1"
 }
 
 # --- Módulos de Instalação ---
@@ -52,16 +60,16 @@ instalarZsh() {
 
 removerZsh() {
   echo 'Removendo ZSH e voltando para o Bash...'
-  chsh -s $(which bash) "$SUDO_USER"
-  rm -rf "/home/$SUDO_USER/.oh-my-zsh"
-  rm -f "/home/$SUDO_USER/.zshrc"
-  rm -f "/home/$SUDO_USER/.p10k.zsh"
-  apt remove -y zsh
+  chsh -s "$(which bash)" "$SUDO_USER" || true
+  remove_user_path ".oh-my-zsh"
+  rm -f "$USER_HOME/.zshrc"
+  rm -f "$USER_HOME/.p10k.zsh"
+  apt remove -y zsh || true
 }
 
 instalarFontes() {
   echo 'Baixando e instalando fontes MesloLGS NF...'
-  local FONT_DIR="/home/$SUDO_USER/.local/share/fonts"
+  local FONT_DIR="$USER_HOME/.local/share/fonts"
   run_as_user "mkdir -p $FONT_DIR"
   
   local BASE_FONT_URL="https://github.com/romkatv/powerlevel10k-media/raw/master"
@@ -76,21 +84,21 @@ instalarFontes() {
 
 removerFontes() {
   echo 'Removendo fontes MesloLGS NF...'
-  rm -f "/home/$SUDO_USER/.local/share/fonts/MesloLGS NF"*.ttf
-  run_as_user "fc-cache -f"
+  rm -f "$USER_HOME/.local/share/fonts/MesloLGS NF"*.ttf
+  run_as_user "fc-cache -f" || true
 }
 
 instalarSdkman() {
-  if [ ! -d "/home/$SUDO_USER/.sdkman" ]; then
+  if [ ! -d "$USER_HOME/.sdkman" ]; then
     echo 'Instalando SDKMAN...'
     run_as_user 'curl -s "https://get.sdkman.io" | bash'
   fi
 }
 
 removerSdkman() {
-  if [ -d "/home/$SUDO_USER/.sdkman" ]; then
+  if [ -d "$USER_HOME/.sdkman" ]; then
     echo 'Removendo SDKMAN...'
-    rm -rf "/home/$SUDO_USER/.sdkman"
+    remove_user_path ".sdkman"
   fi
 }
 
@@ -110,16 +118,10 @@ instalarJava() {
 }
 
 removerJava() {
-  if [ -d "/home/$SUDO_USER/.sdkman" ]; then
-    # Busca todas as versões da Liberica instaladas para remover
-    JAVA_VERSIONS=$(run_as_user "$(source_sdkman) && sdk list java | grep 'installed' | grep 'librca' | awk '{print \$NF}'")
-    
-    if [ ! -z "$JAVA_VERSIONS" ]; then
-      for ver in $JAVA_VERSIONS; do
-        echo "Removendo Java $ver..."
-        run_as_user "$(source_sdkman) && sdk uninstall java $ver"
-      done
-    fi
+  if [ -d "$USER_HOME/.sdkman/candidates/java" ]; then
+    echo 'Removendo instalações de Java gerenciadas pelo SDKMAN...'
+    run_as_user "find \"$USER_HOME/.sdkman/candidates/java\" -mindepth 1 -maxdepth 1 ! -name current -exec rm -rf {} +" || true
+    rm -f "$USER_HOME/.sdkman/var/candidates/java/current" || true
   fi
 }
 
@@ -130,17 +132,15 @@ instalarMaven() {
 }
 
 removerMaven() {
-  if [ -d "/home/$SUDO_USER/.sdkman" ]; then
-    MAVEN_VERSION=$(run_as_user "$(source_sdkman) && sdk list maven | grep 'installed' | head -n 1 | awk '{print \$NF}'")
-    if [ ! -z "$MAVEN_VERSION" ]; then
-      echo "Removendo Maven $MAVEN_VERSION..."
-      run_as_user "$(source_sdkman) && sdk uninstall maven $MAVEN_VERSION"
-    fi
+  if [ -d "$USER_HOME/.sdkman/candidates/maven" ]; then
+    echo 'Removendo instalações de Maven gerenciadas pelo SDKMAN...'
+    run_as_user "find \"$USER_HOME/.sdkman/candidates/maven\" -mindepth 1 -maxdepth 1 ! -name current -exec rm -rf {} +" || true
+    rm -f "$USER_HOME/.sdkman/var/candidates/maven/current" || true
   fi
 }
 
 instalarNode() {
-  if [ ! -d "/home/$SUDO_USER/.nvm" ]; then
+  if [ ! -d "$USER_HOME/.nvm" ]; then
     echo 'Instalando NVM...'
     run_as_user 'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash'
   fi
@@ -149,11 +149,12 @@ instalarNode() {
 }
 
 removerNode() {
-  if [ -d "/home/$SUDO_USER/.nvm" ]; then
+  if [ -d "$USER_HOME/.nvm" ]; then
     echo "Removendo Node.js v$NODE_VERSION..."
-    run_as_user "$(source_nvm) && nvm uninstall $NODE_VERSION"
-    rm -rf "/home/$SUDO_USER/.nvm"
+    run_as_user "$(source_nvm) && nvm deactivate >/dev/null 2>&1 || true; nvm uninstall $NODE_VERSION >/dev/null 2>&1 || true" || true
+    remove_user_path ".nvm"
   fi
+  remove_user_path ".npm"
 }
 
 instalarFirewall() {
@@ -162,12 +163,12 @@ instalarFirewall() {
 }
 
 removerFirewall() {
-  ufw disable
-  ufw status verbose
+  ufw disable || true
+  ufw status verbose || true
 }
 
 instalarJetBrainsToolbox() {
-  if [ -d "/home/$SUDO_USER/.local/opt/jetbrains-toolbox" ]; then
+  if [ -d "$USER_HOME/.local/opt/jetbrains-toolbox" ]; then
     echo 'JetBrains Toolbox já instalado.'
     return
   fi
@@ -181,7 +182,7 @@ instalarJetBrainsToolbox() {
   fi
 
   echo 'Instalando JetBrains Toolbox...'
-  local INSTALL_DIR="/home/$SUDO_USER/.local/opt/jetbrains-toolbox"
+  local INSTALL_DIR="$USER_HOME/.local/opt/jetbrains-toolbox"
   apt install -y libfuse2
   
   run_as_user "mkdir -p $INSTALL_DIR"
@@ -192,9 +193,9 @@ instalarJetBrainsToolbox() {
 
 removerJetBrainsToolbox() {
   echo 'Removendo JetBrains Toolbox...'
-  rm -rf "/home/$SUDO_USER/.local/opt/jetbrains-toolbox"
-  rm -rf "/home/$SUDO_USER/.local/share/JetBrains/Toolbox"
-  rm -f "/home/$SUDO_USER/.local/share/applications/jetbrains-toolbox.desktop"
+  rm -rf "$USER_HOME/.local/opt/jetbrains-toolbox"
+  rm -rf "$USER_HOME/.local/share/JetBrains/Toolbox"
+  rm -f "$USER_HOME/.local/share/applications/jetbrains-toolbox.desktop"
 }
 
 instalarDocker() {
@@ -255,6 +256,7 @@ removerDocker() {
     rm -f /etc/apt/sources.list.d/docker.sources
     rm -f /etc/docker/daemon.json
   fi
+  gpasswd -d "$SUDO_USER" docker >/dev/null 2>&1 || true
 }
 
 instalarFlatpaks() {
@@ -271,18 +273,19 @@ instalarFlatpaks() {
   flatpak install --assumeyes flathub com.getpostman.Postman
 
   echo 'Baixando e configurando mimeapps.list...'
-  local MIME_FILE="/home/$SUDO_USER/.config/mimeapps.list"
-  run_as_user "mkdir -p /home/$SUDO_USER/.config"
+  local MIME_FILE="$USER_HOME/.config/mimeapps.list"
+  run_as_user "mkdir -p \"$USER_HOME/.config\""
   run_as_user "wget $REPO_URL/mimeapps.list -O $MIME_FILE"
   run_as_user "sed -i 's/sublime-text_subl.desktop/com.sublimetext.three.desktop/g' $MIME_FILE"
 }
 
 removerFlatpaks() {
   echo 'Removendo Flatpaks...'
-  flatpak uninstall --assumeyes com.sublimetext.three
-  flatpak uninstall --assumeyes com.getpostman.Postman
-  flatpak uninstall --unused --assumeyes
-  rm -f "/home/$SUDO_USER/.config/mimeapps.list"
+  flatpak uninstall --assumeyes com.sublimetext.three || true
+  flatpak uninstall --assumeyes com.getpostman.Postman || true
+  flatpak uninstall --unused --assumeyes || true
+  flatpak remote-delete --force flathub >/dev/null 2>&1 || true
+  rm -f "$USER_HOME/.config/mimeapps.list"
 }
 
 instalarAngularCli() {
@@ -292,7 +295,7 @@ instalarAngularCli() {
 
 removerAngularCli() {
   echo 'Removendo Angular CLI...'
-  run_as_user "$(source_nvm) && npm uninstall -g @angular/cli"
+  run_as_user "$(source_nvm) && npm uninstall -g @angular/cli >/dev/null 2>&1 || true" || true
 }
 
 has_tty() {
@@ -398,6 +401,7 @@ remover() {
   removerDocker
   removerJetBrainsToolbox
   removerFlatpaks
+  rm -f "$USER_HOME/.wget-hsts"
   apt autoremove -y
   echo "Ambiente removido. Reinicie o sistema."
 }
@@ -418,6 +422,12 @@ fi
 
 # Exporta para ser usado pelas funções
 SUDO_USER=$REAL_USER
+USER_HOME=$(user_home)
+
+if [ -z "$USER_HOME" ] || [ ! -d "$USER_HOME" ]; then
+  echo "Erro: não foi possível localizar o diretório HOME de $SUDO_USER."
+  exit 1
+fi
 
 echo "Olá, $SUDO_USER. Iniciando automação de ambiente para Pop!_OS 24.04..."
 
