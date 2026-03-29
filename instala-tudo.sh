@@ -265,7 +265,7 @@ instalarFlatpaks() {
     apt install -y flatpak
     flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
   fi
-  
+
   echo 'Instalando apps via Flatpak...'
   flatpak install --assumeyes flathub com.sublimetext.three
   flatpak install --assumeyes flathub com.getpostman.Postman
