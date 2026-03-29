@@ -295,6 +295,75 @@ removerAngularCli() {
   run_as_user "$(source_nvm) && npm uninstall -g @angular/cli"
 }
 
+has_tty() {
+  [ -r /dev/tty ] && [ -w /dev/tty ]
+}
+
+show_usage() {
+  cat <<EOF
+Uso: bash instala-tudo.sh [--install] [--remove] [--yes]
+
+  --install  Executa a instalação completa do ambiente.
+  --remove   Executa a remoção completa do ambiente.
+  --yes      Não solicita confirmação interativa.
+EOF
+}
+
+ask_yes_no() {
+  local prompt="$1"
+  local answer=""
+
+  if ! has_tty; then
+    return 2
+  fi
+
+  while true; do
+    if ! read -r -p "$prompt [s/n] " answer </dev/tty; then
+      return 2
+    fi
+
+    case "$answer" in
+      [Ss]*) return 0 ;;
+      [Nn]*) return 1 ;;
+      *) echo "Responda sim[s] ou não[n]." ;;
+    esac
+  done
+}
+
+MODE=""
+ASSUME_YES=0
+
+for arg in "$@"; do
+  case "$arg" in
+    --install)
+      if [ -n "$MODE" ] && [ "$MODE" != "install" ]; then
+        echo "Erro: use apenas um modo por execução: --install ou --remove."
+        exit 1
+      fi
+      MODE="install"
+      ;;
+    --remove)
+      if [ -n "$MODE" ] && [ "$MODE" != "remove" ]; then
+        echo "Erro: use apenas um modo por execução: --install ou --remove."
+        exit 1
+      fi
+      MODE="remove"
+      ;;
+    --yes|-y)
+      ASSUME_YES=1
+      ;;
+    --help|-h)
+      show_usage
+      exit 0
+      ;;
+    *)
+      echo "Erro: argumento inválido '$arg'."
+      show_usage
+      exit 1
+      ;;
+  esac
+done
+
 # --- Orquestração Principal ---
 
 instalar() {
@@ -352,20 +421,33 @@ SUDO_USER=$REAL_USER
 
 echo "Olá, $SUDO_USER. Iniciando automação de ambiente para Pop!_OS 24.04..."
 
-while true; do
-  read -p "Deseja instalar o ambiente completo? [s/n] " sn </dev/tty
-  case $sn in
-    [Ss]*) instalar; break ;;
-    [Nn]*) break ;;
-    *) echo "Responda sim[s] ou não[n]." ;;
-  esac
-done
+if [ -z "$MODE" ] && [ "$ASSUME_YES" -eq 1 ]; then
+  MODE="install"
+fi
 
-while true; do
-  read -p "Deseja remover o ambiente (limpeza completa)? [s/n] " sn </dev/tty
-  case $sn in
-    [Ss]*) remover; break ;;
-    [Nn]*) break ;;
-    *) echo "Responda sim[s] ou não[n]." ;;
+if [ -n "$MODE" ]; then
+  case "$MODE" in
+    install) instalar ;;
+    remove) remover ;;
   esac
-done
+  exit 0
+fi
+
+ask_yes_no "Deseja instalar o ambiente completo?"
+ASK_STATUS=$?
+
+if [ "$ASK_STATUS" -eq 0 ]; then
+  instalar
+  exit 0
+elif [ "$ASK_STATUS" -eq 2 ]; then
+  echo "Sem TTY interativo detectado. Executando instalação completa automaticamente..."
+  instalar
+  exit 0
+fi
+
+ask_yes_no "Deseja remover o ambiente (limpeza completa)?"
+ASK_STATUS=$?
+
+if [ "$ASK_STATUS" -eq 0 ]; then
+  remover
+fi

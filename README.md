@@ -41,5 +41,19 @@ Basta rodar o comando abaixo no seu terminal:
 curl -sL https://raw.githubusercontent.com/edwarddn/ambiente-ubuntu/main/instala-tudo.sh | sudo bash
 ```
 
+Em execuções sem TTY interativo disponível, o script agora assume a instalação completa automaticamente para que o `one-liner` funcione corretamente.
+
+Se quiser executar de forma explícita, use:
+
+```bash
+curl -sL https://raw.githubusercontent.com/edwarddn/ambiente-ubuntu/main/instala-tudo.sh | sudo bash -s -- --install
+```
+
+Para remoção completa:
+
+```bash
+curl -sL https://raw.githubusercontent.com/edwarddn/ambiente-ubuntu/main/instala-tudo.sh | sudo bash -s -- --remove
+```
+
 ---
 *Nota: O script utiliza o contexto do usuário logado (`SUDO_USER`) para garantir que as configurações de diretórios e variáveis de ambiente (SDKMAN/NVM/ZSH) fiquem vinculadas corretamente ao seu perfil.*
