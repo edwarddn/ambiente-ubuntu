@@ -298,43 +298,17 @@ removerAngularCli() {
   run_as_user "$(source_nvm) && npm uninstall -g @angular/cli >/dev/null 2>&1 || true" || true
 }
 
-has_tty() {
-  [ -r /dev/tty ] && [ -w /dev/tty ]
-}
-
 show_usage() {
   cat <<EOF
-Uso: bash instala-tudo.sh [--install] [--remove] [--yes]
+Uso: bash instala-tudo.sh --install
+   ou bash instala-tudo.sh --remove
 
   --install  Executa a instalação completa do ambiente.
   --remove   Executa a remoção completa do ambiente.
-  --yes      Não solicita confirmação interativa.
 EOF
 }
 
-ask_yes_no() {
-  local prompt="$1"
-  local answer=""
-
-  if ! has_tty; then
-    return 2
-  fi
-
-  while true; do
-    if ! read -r -p "$prompt [s/n] " answer </dev/tty; then
-      return 2
-    fi
-
-    case "$answer" in
-      [Ss]*) return 0 ;;
-      [Nn]*) return 1 ;;
-      *) echo "Responda sim[s] ou não[n]." ;;
-    esac
-  done
-}
-
 MODE=""
-ASSUME_YES=0
 
 for arg in "$@"; do
   case "$arg" in
@@ -351,9 +325,6 @@ for arg in "$@"; do
         exit 1
       fi
       MODE="remove"
-      ;;
-    --yes|-y)
-      ASSUME_YES=1
       ;;
     --help|-h)
       show_usage
@@ -431,33 +402,17 @@ fi
 
 echo "Olá, $SUDO_USER. Iniciando automação de ambiente para Pop!_OS 24.04..."
 
-if [ -z "$MODE" ] && [ "$ASSUME_YES" -eq 1 ]; then
-  MODE="install"
+if [ -z "$MODE" ]; then
+  echo "Erro: informe explicitamente um modo de execução."
+  echo
+  echo "Use --install para instalar o ambiente."
+  echo "Use --remove para remover o ambiente."
+  echo
+  show_usage
+  exit 1
 fi
 
-if [ -n "$MODE" ]; then
-  case "$MODE" in
-    install) instalar ;;
-    remove) remover ;;
-  esac
-  exit 0
-fi
-
-ask_yes_no "Deseja instalar o ambiente completo?"
-ASK_STATUS=$?
-
-if [ "$ASK_STATUS" -eq 0 ]; then
-  instalar
-  exit 0
-elif [ "$ASK_STATUS" -eq 2 ]; then
-  echo "Sem TTY interativo detectado. Executando instalação completa automaticamente..."
-  instalar
-  exit 0
-fi
-
-ask_yes_no "Deseja remover o ambiente (limpeza completa)?"
-ASK_STATUS=$?
-
-if [ "$ASK_STATUS" -eq 0 ]; then
-  remover
-fi
+case "$MODE" in
+  install) instalar ;;
+  remove) remover ;;
+esac

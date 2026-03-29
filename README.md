@@ -1,59 +1,124 @@
-# Automatize a infraestrutura (Pop!_OS & Ubuntu Edition)
+# Ambiente Ubuntu
 
-Este script automatiza a configuração de um ambiente de desenvolvimento completo e moderno, focado em produtividade e arquitetura limpa.
+Script para preparar uma máquina nova com um ambiente de desenvolvimento opinativo em Pop!_OS 24.04 ou Ubuntu 24.04.
 
-### Requisitos do SO
+Se você quer subir seu setup pessoal rápido, sem configurar tudo manualmente, esse repositório foi feito para isso. A ideia é simples: rodar um comando, instalar o essencial e deixar o terminal, Java, Node, Docker e algumas ferramentas prontas para uso.
 
-- **Pop!_OS 24.04 LTS** (Recomendado - Suporte nativo completo)
-- **Ubuntu 24.04 LTS** (Veja a nota abaixo sobre Flatpak)
+## Para quem é
 
-> ⚠️ **Nota para usuários de Ubuntu:** O Ubuntu não traz o suporte a Flatpak habilitado por padrão. Para que o script funcione corretamente no Ubuntu, você deve configurar o Flatpak e o repositório Flathub previamente:
-> ```bash
-> sudo apt update && sudo apt install flatpak
-> flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-> ```
+Este script faz sentido se você:
 
-### O que o script configura?
+- acabou de instalar o sistema e quer montar seu ambiente do zero;
+- usa Java, Maven, Node, Angular e Docker no dia a dia;
+- quer Zsh com Oh My Zsh e Powerlevel10k já configurados;
+- prefere um setup pronto, mesmo que ele reflita escolhas específicas deste projeto.
 
-#### 🐚 Terminal de Alta Performance
-- **ZSH & Oh My Zsh:** Shell padrão com plugins essenciais (`autosuggestions`, `syntax-highlighting`, `docker`, `maven`, `git`, etc.).
-- **Powerlevel10k:** Tema visual configurado automaticamente através do arquivo `.p10k.zsh` injetado no sistema.
-- **Fontes MesloLGS NF:** Instalação automática das fontes necessárias para suporte a ícones no terminal.
+Se você quer controle fino de cada pacote e de cada arquivo de configuração, melhor revisar o script antes de executar.
 
-#### 🛠️ Toolchain de Desenvolvimento
-- **Java & Build:** Java BellSoft Liberica **v25 (LTS)** e Maven (Última estável) via **SDKMAN**.
-- **Frontend:** Node.js **v24 (LTS)** via **NVM** e Angular CLI.
-- **JetBrains Toolbox:** Centralizador de IDEs instalado em `~/.local/opt/jetbrains-toolbox`.
+## O que o script instala e configura
 
-#### 🐳 Infraestrutura Docker
-- **Docker Engine:** Formato moderno (`.sources`) com plugins `buildx` e `compose`.
-- **Otimização:** Configuração de limites de logs e redes internas via `daemon.json`.
+### Sistema
 
-#### 📦 Aplicativos (Flatpak)
-- **Sublime Text:** Instalado e configurado como editor de texto padrão.
-- **Postman:** Ferramenta completa para testes de API.
+- atualiza os índices do APT e executa `apt upgrade -y`;
+- instala ferramentas básicas: `git`, `curl`, `zip`, `unzip` e `wget`;
+- instala `zsh`;
+- habilita e configura o Docker usando o repositório oficial;
+- habilita o `ufw`;
+- instala `flatpak`, se necessário.
 
-### Como instalar (One-Liner)
+### Ambiente do usuário
 
-Basta rodar o comando abaixo no seu terminal:
+- instala Oh My Zsh;
+- instala o tema Powerlevel10k;
+- baixa o arquivo [`.p10k.zsh`](./.p10k.zsh);
+- adiciona plugins úteis no `.zshrc`;
+- instala as fontes MesloLGS NF em `~/.local/share/fonts`;
+- instala SDKMAN;
+- instala Java BellSoft Liberica compatível com o prefixo definido no script;
+- instala Maven via SDKMAN;
+- instala NVM;
+- instala Node.js `v24`;
+- instala Angular CLI globalmente;
+- instala JetBrains Toolbox em `~/.local/opt/jetbrains-toolbox`;
+- instala Sublime Text e Postman via Flatpak;
+- grava o arquivo `~/.config/mimeapps.list`.
 
-```bash
-curl -sL https://raw.githubusercontent.com/edwarddn/ambiente-ubuntu/main/instala-tudo.sh | sudo bash
-```
+## O que muda na sua máquina
 
-Em execuções sem TTY interativo disponível, o script agora assume a instalação completa automaticamente para que o `one-liner` funcione corretamente.
+Na primeira execução, o script altera tanto o sistema quanto o seu usuário:
 
-Se quiser executar de forma explícita, use:
+- troca o shell padrão do usuário para `zsh`;
+- cria e remove arquivos dentro do seu `HOME`;
+- adiciona seu usuário ao grupo `docker`;
+- escreve arquivos em `/etc/apt`, `/etc/docker` e outras áreas do sistema;
+- instala software por APT, SDKMAN, NVM e Flatpak.
+
+Por isso, não trate esse script como algo neutro. Ele automatiza um setup real.
+
+## Requisitos
+
+- Pop!_OS 24.04 LTS ou Ubuntu 24.04 LTS;
+- acesso a `sudo`;
+- internet durante a instalação;
+- execução a partir de um usuário normal, usando `sudo`.
+
+O script tenta descobrir o `HOME` real do usuário que chamou o `sudo`, então o uso esperado é sempre com modo explícito:
 
 ```bash
 curl -sL https://raw.githubusercontent.com/edwarddn/ambiente-ubuntu/main/instala-tudo.sh | sudo bash -s -- --install
 ```
 
-Para remoção completa:
+## Primeira execução
+
+Se esta é sua primeira vez usando o script, faça nesta ordem:
+
+1. Leia o arquivo [instala-tudo.sh](./instala-tudo.sh).
+2. Confirme se as escolhas do projeto fazem sentido para a sua máquina.
+3. Execute a instalação com `--install`.
+4. Reinicie a sessão ou a máquina ao final.
+
+Se você executar o script sem `--install` ou `--remove`, ele encerra com erro e mostra a forma correta de uso.
+
+## Remoção
+
+Para executar a remoção:
 
 ```bash
 curl -sL https://raw.githubusercontent.com/edwarddn/ambiente-ubuntu/main/instala-tudo.sh | sudo bash -s -- --remove
 ```
 
----
-*Nota: O script utiliza o contexto do usuário logado (`SUDO_USER`) para garantir que as configurações de diretórios e variáveis de ambiente (SDKMAN/NVM/ZSH) fiquem vinculadas corretamente ao seu perfil.*
+O `--remove` tenta desfazer o ambiente configurado pelo script, incluindo itens como:
+
+- `~/.nvm`;
+- `~/.npm`;
+- `~/.oh-my-zsh`;
+- `~/.sdkman`;
+- `~/.zshrc`;
+- `~/.p10k.zsh`;
+- fontes MesloLGS NF;
+- JetBrains Toolbox;
+- `~/.config/mimeapps.list`;
+- `~/.wget-hsts`;
+- apps instalados por Flatpak neste fluxo;
+- configuração do Docker criada pelo script.
+
+Alguns diretórios genéricos, como `~/.local` e `~/.cache`, podem continuar existindo, porque não pertencem exclusivamente a este projeto.
+
+## Observações importantes
+
+- O script usa `set -e`, então falhas não tratadas interrompem a execução.
+- O script não pergunta interativamente o que fazer. Você precisa escolher explicitamente `--install` ou `--remove`.
+- A remoção usa `apt autoremove -y` no final. Revise isso com atenção antes de usar `--remove` em uma máquina já personalizada.
+- O projeto é opinativo. Ele não tenta servir todos os perfis de uso.
+
+## Arquivos deste repositório
+
+- [instala-tudo.sh](./instala-tudo.sh): script principal de instalação e remoção.
+- [mimeapps.list](./mimeapps.list): associações de aplicativos do usuário.
+- [fonts](./fonts): assets auxiliares do projeto.
+
+## Resumo curto
+
+Se você quer preparar uma máquina nova no mesmo estilo deste ambiente, rode o script.
+
+Se você não quer que um script altere shell, Docker, Flatpak, Java, Node e arquivos do seu `HOME`, não rode sem antes revisar.
