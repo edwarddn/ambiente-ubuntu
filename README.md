@@ -15,19 +15,29 @@ Este script faz sentido se você:
 
 Se você quer controle fino de cada pacote e de cada arquivo de configuração, melhor revisar o script antes de executar.
 
+## Premissa do projeto
+
+Este script foi pensado para uso em uma máquina recém-instalada.
+
+Ele assume uma base mínima do sistema operacional, como pacotes que já podem vir no Pop!_OS ou no Ubuntu, e monta por cima um ambiente de desenvolvimento pessoal. A ideia não é administrar tudo que existe na máquina. A ideia é preparar rapidamente o que este projeto considera parte do ambiente de trabalho.
+
+Por isso, o `--remove` não tenta "voltar o sistema ao estado de fábrica". Ele desfaz principalmente o que este script adicionou como toolchain, apps e customizações de terminal.
+
 ## O que o script instala e configura
 
-### Sistema
+### Base do sistema
 
 - atualiza os índices do APT e executa `apt upgrade -y`;
 - instala ferramentas básicas: `git`, `curl`, `zip`, `unzip` e `wget`;
-- instala `zsh`;
-- habilita e configura o Docker usando o repositório oficial;
-- habilita o `ufw`;
 - instala `flatpak`, se necessário.
 
-### Ambiente do usuário
+Esses itens fazem parte da base esperada para o ambiente funcionar. Alguns deles podem já existir no sistema, especialmente em instalações padrão do Pop!_OS.
 
+### Ambiente criado pelo script
+
+- habilita e configura o Docker usando o repositório oficial;
+- habilita o `ufw`;
+- instala `zsh`;
 - instala Oh My Zsh;
 - instala o tema Powerlevel10k;
 - baixa o arquivo [`.p10k.zsh`](./.p10k.zsh);
@@ -87,7 +97,7 @@ Para executar a remoção:
 curl -sL https://raw.githubusercontent.com/edwarddn/ambiente-ubuntu/main/instala-tudo.sh | sudo bash -s -- --remove
 ```
 
-O `--remove` tenta desfazer o ambiente configurado pelo script, incluindo itens como:
+O `--remove` desfaz o ambiente criado pelo script, incluindo itens como:
 
 - `~/.nvm`;
 - `~/.npm`;
@@ -103,6 +113,8 @@ O `--remove` tenta desfazer o ambiente configurado pelo script, incluindo itens 
 - configuração do Docker criada pelo script.
 
 Alguns diretórios genéricos, como `~/.local` e `~/.cache`, podem continuar existindo, porque não pertencem exclusivamente a este projeto.
+
+O `--remove` não foi desenhado para remover a base mínima do sistema operacional. Em outras palavras: ele tenta tirar Java, Maven, Node, Angular CLI, JetBrains Toolbox, `zsh`, customizações de terminal, fontes e apps instalados por este fluxo, mas não tenta desmontar o sistema base que já pode vir pronto na distribuição.
 
 ## Observações importantes
 
