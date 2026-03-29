@@ -2,156 +2,145 @@
 
 set -e
 
-JAVA_URL=https://github.com/graalvm/graalvm-ce-builds/releases/download/vm-22.1.0/graalvm-ce-java17-linux-amd64-22.1.0.tar.gz
-JAVA_FILE=graalvm-ce-java17-linux-amd64-22.1.0.tar.gz
-JAVA_PATH=graalvm-ce-java17-22.1.0
+# --- Helpers de Arquitetura ---
 
-MAVEN_URL=https://dlcdn.apache.org/maven/maven-3/3.8.6/binaries/apache-maven-3.8.6-bin.tar.gz
-MAVEN_FILE=apache-maven-3.8.6-bin.tar.gz
-MAVEN_PATH=apache-maven-3.8.6
+# Obtém o diretório onde o script está localizado
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-NODE_URL=https://nodejs.org/dist/v16.16.0/node-v16.16.0-linux-x64.tar.xz
-NODE_FILE=node-v16.16.0-linux-x64.tar.xz
-NODE_PATH=node-v16.16.0-linux-x64
+run_as_user() {
+  sudo -u "$SUDO_USER" bash -c "$1"
+}
 
-instalarJava() {
-  if [ -d "/opt/java" ]; then
-    echo 'O JAVA já foi instalado'
+source_sdkman() {
+  echo "source \"/home/$SUDO_USER/.sdkman/bin/sdkman-init.sh\""
+}
+
+source_nvm() {
+  echo "export NVM_DIR=\"/home/$SUDO_USER/.nvm\" && [ -s \"\$NVM_DIR/nvm.sh\" ] && \. \"\$NVM_DIR/nvm.sh\""
+}
+
+# --- Módulos de Instalação ---
+
+instalarZsh() {
+  echo 'Instalando e configurando ZSH...'
+  apt install -y zsh
+  chsh -s $(which zsh) "$SUDO_USER"
+
+  echo 'Instalando Oh My Zsh...'
+  run_as_user 'sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended'
+
+  echo 'Instalando tema Powerlevel10k...'
+  run_as_user 'git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k'
+  
+  echo 'Configurando Powerlevel10k no .zshrc...'
+  run_as_user "sed -i 's/ZSH_THEME=\"robbyrussell\"/ZSH_THEME=\"powerlevel10k\/powerlevel10k\"/g' ~/.zshrc"
+  
+  # Injetar a configuração do p10k se o arquivo existir no repositório
+  if [ -f "$SCRIPT_DIR/.p10k.zsh" ]; then
+    echo 'Injetando configuração personalizada do Powerlevel10k...'
+    cp "$SCRIPT_DIR/.p10k.zsh" "/home/$SUDO_USER/"
+    chown "$SUDO_USER:$SUDO_USER" "/home/$SUDO_USER/.p10k.zsh"
+    # Garante que o .zshrc carregue o .p10k.zsh no topo
+    run_as_user "sed -i '1i[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh' ~/.zshrc"
+  fi
+
+  echo 'Instalando plugins adicionais do ZSH...'
+  run_as_user 'git clone https://github.com/zsh-users/zsh-autosuggestions.git ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autosuggestions'
+  run_as_user 'git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting'
+
+  echo 'Configurando plugins no .zshrc...'
+  run_as_user "sed -i 's/plugins=(git)/plugins=(git docker gradle mvn spring extract sudo zsh-autosuggestions zsh-syntax-highlighting)/g' ~/.zshrc"
+}
+
+removerZsh() {
+  echo 'Removendo ZSH e voltando para o Bash...'
+  chsh -s $(which bash) "$SUDO_USER"
+  rm -rf "/home/$SUDO_USER/.oh-my-zsh"
+  rm -f "/home/$SUDO_USER/.zshrc"
+  rm -f "/home/$SUDO_USER/.p10k.zsh"
+  apt remove -y zsh
+}
+
+instalarFontes() {
+  echo 'Instalando fontes MesloLGS NF...'
+  local FONT_DIR="/home/$SUDO_USER/.local/share/fonts"
+  run_as_user "mkdir -p $FONT_DIR"
+  
+  if [ -d "$SCRIPT_DIR/fonts" ]; then
+    cp "$SCRIPT_DIR/fonts"/*.ttf "$FONT_DIR/"
+    chown "$SUDO_USER:$SUDO_USER" "$FONT_DIR"/*.ttf
+    run_as_user "fc-cache -f"
   else
-    echo 'Iniciando a instalação do JAVA'
-
-    cd /opt/
-
-    wget $JAVA_URL
-
-    tar -xzvf $JAVA_FILE
-    ln -s /opt/$JAVA_PATH java
-    ln -s /opt/java/bin/java /usr/bin/java
-    ln -s /opt/java/bin/javac /usr/bin/javac
-    
-    ln -s /opt/java/bin/js /usr/bin/js
-    ln -s /opt/java/bin/lli /usr/bin/lli
-    ln -s /opt/java/bin/gu /usr/bin/gu
-
-    echo '#PATH for Java' >/etc/profile.d/java.sh
-    echo 'JAVA_HOME=/opt/java' >>/etc/profile.d/java.sh
-    echo 'export PATH=$PATH:$JAVA_HOME/bin' >>/etc/profile.d/java.sh
-
-    echo 'Instalação do Java concluida com sucesso'
+    echo "Aviso: Pasta de fontes não encontrada em $SCRIPT_DIR/fonts"
   fi
 }
 
+removerFontes() {
+  echo 'Removendo fontes MesloLGS NF...'
+  rm -f "/home/$SUDO_USER/.local/share/fonts/MesloLGS NF"*.ttf
+  run_as_user "fc-cache -f"
+}
+
+instalarJava() {
+  if [ ! -d "/home/$SUDO_USER/.sdkman" ]; then
+    echo 'Instalando SDKMAN...'
+    apt install -y zip unzip curl
+    run_as_user 'curl -s "https://get.sdkman.io" | bash'
+  fi
+
+  # Busca a versão estável mais recente da BellSoft Liberica (LTS atual)
+  JAVA_VERSION=$(run_as_user "$(source_sdkman) && sdk list java | grep 'librca' | grep -v '\-fx' | grep -v '\-ea' | head -n 1 | awk '{print \$NF}'")
+  
+  if [ -z "$JAVA_VERSION" ]; then
+    echo "Erro: Java Liberica não encontrado no SDKMAN."
+    return 1
+  fi
+
+  echo "Instalando Java $JAVA_VERSION via SDKMAN..."
+  run_as_user "$(source_sdkman) && sdk install java $JAVA_VERSION"
+}
+
 removerJava() {
-  if [ ! -d "/opt/java" ]; then
-    echo 'O JAVA não foi instalado'
-  else
-    echo 'Removendo a instalação do JAVA'
-
-    cd /opt/
-
-    rm -f /opt/$JAVA_FILE
-    rm -rf /opt/$JAVA_PATH
-
-    unlink java
-    unlink /usr/bin/java
-    unlink /usr/bin/javac
-    
-    unlink /usr/bin/js
-    unlink /usr/bin/lli
-    unlink /usr/bin/gu
-
-    rm -f /etc/profile.d/java.sh
-
-    echo 'Instalação do Java foi removida com sucesso'
+  if [ -d "/home/$SUDO_USER/.sdkman" ]; then
+    JAVA_VERSIONS=$(run_as_user "$(source_sdkman) && sdk list java | grep 'installed' | grep 'librca' | awk '{print \$NF}'")
+    if [ ! -z "$JAVA_VERSIONS" ]; then
+      for ver in $JAVA_VERSIONS; do
+        echo "Removendo Java $ver..."
+        run_as_user "$(source_sdkman) && sdk uninstall java $ver"
+      done
+    fi
   fi
 }
 
 instalarMaven() {
-  if [ -d "/opt/maven" ]; then
-    echo 'O Maven já foi instalado'
-  else
-    echo 'Iniciando a instalação do Maven'
-
-    cd /opt/
-
-    wget $MAVEN_URL
-
-    tar -xzvf $MAVEN_FILE
-
-    ln -s /opt/$MAVEN_PATH maven
-    ln -s /opt/maven/bin/mvn /usr/bin/mvn
-
-    echo '#PATH for Maven' >/etc/profile.d/maven.sh
-    echo 'M2_HOME=/opt/maven' >>/etc/profile.d/maven.sh
-    echo 'export PATH=$PATH:$M2_HOME/bin' >>/etc/profile.d/maven.sh
-
-    echo 'Instalação do Maven concluida com sucesso'
-  fi
+  if [ ! -d "/home/$SUDO_USER/.sdkman" ]; then instalarJava; fi
+  echo "Instalando a versão estável mais recente do Maven via SDKMAN..."
+  run_as_user "$(source_sdkman) && sdk install maven"
 }
 
 removerMaven() {
-  if [ ! -d "/opt/maven" ]; then
-    echo 'O Maven não foi instalado'
-  else
-    echo 'Removendo a instalação do Maven'
-
-    cd /opt/
-
-    rm -f /opt/$MAVEN_FILE
-    rm -rf /opt/$MAVEN_PATH
-
-    unlink maven
-    unlink /usr/bin/mvn
-
-    rm -f /etc/profile.d/maven.sh
-
-    echo 'Instalação do Maven foi removida com sucesso'
+  if [ -d "/home/$SUDO_USER/.sdkman" ]; then
+    MAVEN_VERSION=$(run_as_user "$(source_sdkman) && sdk list maven | grep 'installed' | head -n 1 | awk '{print \$NF}'")
+    if [ ! -z "$MAVEN_VERSION" ]; then
+      echo "Removendo Maven $MAVEN_VERSION..."
+      run_as_user "$(source_sdkman) && sdk uninstall maven $MAVEN_VERSION"
+    fi
   fi
 }
 
 instalarNode() {
-  if [ -d "/opt/node" ]; then
-    echo 'O node já foi instalado'
-  else
-    echo 'Iniciando a instalação do node'
-
-    cd /opt/
-
-    wget $NODE_URL
-
-    tar -Jxvf $NODE_FILE
-    ln -s /opt/$NODE_PATH node
-
-    ln -s /opt/node/bin/node /usr/bin/node
-    ln -s /opt/node/bin/npm /usr/bin/npm
-    ln -s /opt/node/bin/npx /usr/bin/npx
-
-    echo '# Nodejs' >/etc/profile.d/node.sh
-    echo 'export PATH=/opt/node/bin:$PATH' >>/etc/profile.d/node.sh
-
-    echo 'Instalação do node concluida com sucesso'
+  if [ ! -d "/home/$SUDO_USER/.nvm" ]; then
+    echo 'Instalando NVM...'
+    run_as_user 'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash'
   fi
+  echo 'Instalando Node.js v24 via NVM...'
+  run_as_user "$(source_nvm) && nvm install 24 && nvm use 24 && nvm alias default 24"
 }
 
 removerNode() {
-  if [ ! -d "/opt/node" ]; then
-    echo 'O node não foi instalado'
-  else
-    echo 'Removendo a instalação do node'
-
-    cd /opt/
-
-    rm -f /opt/$NODE_FILE
-    rm -rf /opt/$NODE_PATH
-    unlink node
-
-    unlink /usr/bin/node
-    unlink /usr/bin/npm
-    unlink /usr/bin/npx
-
-    rm -f /etc/profile.d/node.sh
-
-    echo 'Instalação do node foi removida com sucesso'
+  if [ -d "/home/$SUDO_USER/.nvm" ]; then
+    echo 'Removendo Node.js v24...'
+    run_as_user "$(source_nvm) && nvm uninstall 24"
   fi
 }
 
@@ -165,20 +154,37 @@ removerFirewall() {
   ufw status verbose
 }
 
-instalarIntellij() {
-  snap install intellij-idea-ultimate --classic
+instalarJetBrainsToolbox() {
+  if [ -d "/home/$SUDO_USER/.local/opt/jetbrains-toolbox" ]; then
+    echo 'JetBrains Toolbox já instalado.'
+    return
+  fi
+
+  echo 'Buscando versão mais recente do JetBrains Toolbox...'
+  # URL da API que redireciona para o tar.gz mais novo
+  local API_URL="https://data.services.jetbrains.com/products/releases?code=TBA&latest=true&type=release"
+  local DOWNLOAD_URL=$(curl -sL "$API_URL" | grep -Po '"linux":\{"link":"\K[^"]*')
+  
+  if [ -z "$DOWNLOAD_URL" ]; then
+    # Fallback para versão conhecida se a API falhar
+    DOWNLOAD_URL="https://download.jetbrains.com/toolbox/jetbrains-toolbox-2.3.1.31116.tar.gz"
+  fi
+
+  echo 'Instalando JetBrains Toolbox...'
+  local INSTALL_DIR="/home/$SUDO_USER/.local/opt/jetbrains-toolbox"
+  apt install -y libfuse2
+  
+  run_as_user "mkdir -p $INSTALL_DIR"
+  run_as_user "curl -sL $DOWNLOAD_URL | tar -xz -C $INSTALL_DIR --strip-components=1"
+  echo 'Iniciando Toolbox para configuração inicial...'
+  run_as_user "$INSTALL_DIR/bin/jetbrains-toolbox &"
 }
 
-removerIntellij() {
-  snap remove intellij-idea-ultimate
-}
-
-instalarDatagrip() {
-  snap install datagrip --classic
-}
-
-removerDatagrip() {
-  snap remove datagrip
+removerJetBrainsToolbox() {
+  echo 'Removendo JetBrains Toolbox...'
+  rm -rf "/home/$SUDO_USER/.local/opt/jetbrains-toolbox"
+  rm -rf "/home/$SUDO_USER/.local/share/JetBrains/Toolbox"
+  rm -f "/home/$SUDO_USER/.local/share/applications/jetbrains-toolbox.desktop"
 }
 
 instalarGit() {
@@ -189,232 +195,165 @@ removerGit() {
   apt remove -y git
 }
 
-instalarFlatpak() {
-  apt install -y flatpak
-  flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-  flatpak install --assumeyes flathub com.syntevo.SmartGit
-}
-
-removerFlatpak() {
-  if [ -f "/bin/flatpak" ]; then
-    flatpak remove --assumeyes com.syntevo.SmartGit
-    flatpak remove --unused --assumeyes
-  fi
-  apt remove -y flatpak
-}
-
-instalarFontsMs() {
-  apt install -y ttf-mscorefonts-installer
-}
-
-removerFontsMs() {
-  apt remove -y ttf-mscorefonts-installer
-}
-
 instalarDocker() {
-  if [ -f "/etc/apt/sources.list.d/docker.list" ]; then
+  if [ -f "/etc/apt/sources.list.d/docker.sources" ]; then
     echo 'O Docker já foi instalado'
   else
-    apt install -y ca-certificates curl gnupg lsb-release
+    echo 'Iniciando a instalação do Docker (formato moderno)...'
+    apt update
+    apt install -y ca-certificates curl
+    install -m 0755 -d /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+    chmod a+r /etc/apt/keyrings/docker.asc
 
-    mkdir -p /etc/apt/keyrings
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
+    cat <<EOF > /etc/apt/sources.list.d/docker.sources
+Types: deb
+URIs: https://download.docker.com/linux/ubuntu
+Suites: $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}")
+Components: stable
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/docker.asc
+EOF
 
     apt update
-    apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+    apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+    echo 'Configurando daemon.json do Docker...'
+    mkdir -p /etc/docker
+    cat <<EOF > /etc/docker/daemon.json
+{
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "10"
+  },
+  "default-address-pools":
+  [
+    {
+      "base": "10.17.0.0/16",
+      "size": 24
+    }
+  ]
+}
+EOF
+    systemctl restart docker || true
   fi
-  usermod -aG docker $SUDO_USER
+  usermod -aG docker "$SUDO_USER"
 }
 
 removerDocker() {
-  if [ ! -f "/etc/apt/sources.list.d/docker.list" ]; then
+  if [ ! -f "/etc/apt/sources.list.d/docker.sources" ]; then
     echo 'O Docker não foi instalado'
   else
-    apt purge -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+    echo 'Removendo Docker e configurações...'
+    apt purge -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
     rm -rf /var/lib/docker
     rm -rf /var/lib/containerd
-    rm -rf /etc/apt/keyrings
-    rm -f /etc/apt/sources.list.d/docker.list
+    rm -f /etc/apt/keyrings/docker.asc
+    rm -f /etc/apt/sources.list.d/docker.sources
+    rm -f /etc/docker/daemon.json
   fi
 }
 
-instalarSublime() {
-  snap install sublime-text --classic
+instalarFlatpaks() {
+  echo 'Instalando apps via Flatpak...'
+  
+  # Instalando Sublime Text e Postman via Flatpak
+  flatpak install --assumeyes flathub com.sublimetext.three
+  flatpak install --assumeyes flathub com.getpostman.Postman
 
-  rm -f '/home/'$SUDO_USER'/.config/mimeapps.list'
-  wget https://github.com/edwarddn/ambiente-ubuntu/raw/main/mimeapps.list -P '/home/'$SUDO_USER'/.config/'
-  chown $SUDO_USER:$SUDO_USER '/home/'$SUDO_USER'/.config/mimeapps.list'
+  # Configuração do mimeapps para o Sublime Flatpak
+  if [ -f "$SCRIPT_DIR/mimeapps.list" ]; then
+    rm -f "/home/$SUDO_USER/.config/mimeapps.list"
+    cp "$SCRIPT_DIR/mimeapps.list" "/home/$SUDO_USER/.config/"
+    chown "$SUDO_USER:$SUDO_USER" "/home/$SUDO_USER/.config/mimeapps.list"
+    # Ajuste no mimeapps para apontar para o Flatpak do Sublime
+    sed -i 's/sublime-text_subl.desktop/com.sublimetext.three.desktop/g' "/home/$SUDO_USER/.config/mimeapps.list"
+  fi
 }
 
-removerSublime() {
-  snap remove sublime-text
-  rm -f '/home/'$SUDO_USER'/.config/mimeapps.list'
-}
-
-instalarPostman() {
-  snap install postman
-}
-
-removerPostman() {
-  snap remove postman
-}
-
-instalarCode() {
-  snap install code --classic
-}
-
-removerCode() {
-  snap remove code
+removerFlatpaks() {
+  echo 'Removendo Flatpaks...'
+  flatpak uninstall --assumeyes com.sublimetext.three
+  flatpak uninstall --assumeyes com.getpostman.Postman
+  flatpak uninstall --unused --assumeyes
+  rm -f "/home/$SUDO_USER/.config/mimeapps.list"
 }
 
 instalarAngularCli() {
-  if [ ! -d "/opt/node" ]; then
-    echo 'O node não foi instalado'
-  else
-    npm install -g @angular/cli
-  fi
+  echo 'Instalando Angular CLI...'
+  run_as_user "$(source_nvm) && npm install -g @angular/cli"
 }
 
 removerAngularCli() {
-  if [ ! -d "/opt/node" ]; then
-    echo 'O node não foi instalado'
-  else
-    npm uninstall -g @angular/cli
-    npm cache clean --force
-  fi
+  echo 'Removendo Angular CLI...'
+  run_as_user "$(source_nvm) && npm uninstall -g @angular/cli"
 }
 
-instalarTheme() {
-  sudo -u $SUDO_USER echo "[legacy/profiles:]" >./terminal_jafidelis_theme.txt
-  sudo -u $SUDO_USER echo "default='d1099164-5230-4164-a712-197838e23d61'" >>./terminal_jafidelis_theme.txt
-  sudo -u $SUDO_USER echo "list=['b1dcc9dd-5262-4d8d-a863-c897e6d979b9', 'd1099164-5230-4164-a712-197838e23d61']" >>./terminal_jafidelis_theme.txt
-  sudo -u $SUDO_USER echo "" >>./terminal_jafidelis_theme.txt
-  sudo -u $SUDO_USER echo "[legacy/profiles:/:d1099164-5230-4164-a712-197838e23d61]" >>./terminal_jafidelis_theme.txt
-  sudo -u $SUDO_USER echo "background-color='rgb(35,34,34)'" >>./terminal_jafidelis_theme.txt
-  sudo -u $SUDO_USER echo "background-transparency-percent=1" >>./terminal_jafidelis_theme.txt
-  sudo -u $SUDO_USER echo "cursor-shape='block'" >>./terminal_jafidelis_theme.txt
-  sudo -u $SUDO_USER echo "default-size-columns=90" >>./terminal_jafidelis_theme.txt
-  sudo -u $SUDO_USER echo "default-size-rows=22" >>./terminal_jafidelis_theme.txt
-  sudo -u $SUDO_USER echo "foreground-color='rgb(196,193,193)'" >>./terminal_jafidelis_theme.txt
-  sudo -u $SUDO_USER echo "palette=['rgb(46,52,54)', 'rgb(204,0,0)', 'rgb(34,209,139)', 'rgb(196,160,0)', 'rgb(51,142,250)', 'rgb(117,80,123)', 'rgb(6,152,154)', 'rgb(211,215,207)', 'rgb(85,87,83)', 'rgb(239,41,41)', 'rgb(138,226,52)', 'rgb(252,233,79)', 'rgb(114,159,207)', 'rgb(173,127,168)', 'rgb(52,226,226)', 'rgb(238,238,236)']" >>./terminal_jafidelis_theme.txt
-  sudo -u $SUDO_USER echo "use-theme-colors=false" >>./terminal_jafidelis_theme.txt
-  sudo -u $SUDO_USER echo "use-theme-transparency=false" >>./terminal_jafidelis_theme.txt
-  sudo -u $SUDO_USER echo "use-transparent-background=true" >>./terminal_jafidelis_theme.txt
-  sudo -u $SUDO_USER echo "visible-name='personal'" >>./terminal_jafidelis_theme.txt
-
-  RUID=$(who | awk 'FNR == 1 {print $1}')
-  RUSER_UID=$(id -u ${RUID})
-  sudo -u $SUDO_USER DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${RUSER_UID}/bus" dconf load /org/gnome/terminal/ <./terminal_jafidelis_theme.txt
-
-  rm -f ./terminal_jafidelis_theme.txt
-
-  sudo -u $SUDO_USER DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${RUSER_UID}/bus" gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
-  sudo -u $SUDO_USER DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${RUSER_UID}/bus" gsettings set org.gnome.shell.extensions.dash-to-dock dash-max-icon-size 28
-  sudo -u $SUDO_USER DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${RUSER_UID}/bus" gsettings set org.gnome.shell.extensions.ding icon-size 'small'
-}
-
-removerTheme() {
-  sudo -u $SUDO_USER echo "[legacy/profiles:]" >./terminal_original_theme.txt
-  sudo -u $SUDO_USER echo "default='b1dcc9dd-5262-4d8d-a863-c897e6d979b9'" >>./terminal_original_theme.txt
-  sudo -u $SUDO_USER echo "list=['b1dcc9dd-5262-4d8d-a863-c897e6d979b9']" >>./terminal_original_theme.txt
-
-  RUID=$(who | awk 'FNR == 1 {print $1}')
-  RUSER_UID=$(id -u ${RUID})
-  sudo -u $SUDO_USER DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${RUSER_UID}/bus" dconf load /org/gnome/terminal/ <./terminal_original_theme.txt
-
-  rm -f ./terminal_original_theme.txt
-
-  sudo -u $SUDO_USER DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${RUSER_UID}/bus" gsettings set org.gnome.desktop.interface color-scheme 'prefer-light'
-  sudo -u $SUDO_USER DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${RUSER_UID}/bus" gsettings reset org.gnome.desktop.interface color-scheme
-  sudo -u $SUDO_USER DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${RUSER_UID}/bus" gsettings reset org.gnome.shell.extensions.dash-to-dock dash-max-icon-size
-  sudo -u $SUDO_USER DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${RUSER_UID}/bus" gsettings reset org.gnome.shell.extensions.ding icon-size
-}
-
-instalarCustomShell() {
-  rm -f '/home/'$SUDO_USER'/.bashrc'
-  wget https://raw.githubusercontent.com/edwarddn/ambiente-ubuntu/main/.bashrc -P '/home/'$SUDO_USER'/'
-  chown $SUDO_USER:$SUDO_USER '/home/'$SUDO_USER'/.bashrc'
-}
-
-removerCustomShell() {
-  rm -f '/home/'$SUDO_USER'/.bashrc'
-  cp '/etc/skel/.bashrc' '/home/'$SUDO_USER'/'
-  chown $SUDO_USER:$SUDO_USER '/home/'$SUDO_USER'/.bashrc'
-}
+# --- Orquestração Principal ---
 
 instalar() {
   apt update
   apt upgrade -y
+  instalarZsh
+  instalarFontes
   instalarJava
   instalarMaven
   instalarNode
   instalarFirewall
   instalarGit
   instalarDocker
-  instalarIntellij
-  instalarDatagrip
-  instalarSublime
-  instalarPostman
-  instalarCode
-  instalarFlatpak
-  instalarFontsMs
+  instalarJetBrainsToolbox
+  instalarFlatpaks
   instalarAngularCli
-  instalarTheme
-  instalarCustomShell
-  reboot
+  echo "Ambiente configurado com sucesso! Reinicie para aplicar todas as mudanças."
 }
 
 remover() {
+  removerZsh
+  removerFontes
   removerAngularCli
-  removerFlatpak
   removerJava
   removerMaven
   removerNode
   removerFirewall
   removerGit
   removerDocker
-  removerIntellij
-  removerDatagrip
-  removerSublime
-  removerPostman
-  removerCode
-  removerFontsMs
-  removerTheme
-  removerCustomShell
+  removerJetBrainsToolbox
+  removerFlatpaks
   apt update
   apt upgrade -y
   apt autoremove -y
-  reboot
+  echo "Ambiente removido. Reinicie o sistema."
 }
 
+# Verificação de segurança
 if [ "$EUID" -ne 0 ]; then
-  echo "Execute o script com sudo"
-  exit
+  echo "Erro: Execute o script com sudo para que ele possa gerenciar pacotes e permissões."
+  exit 1
 fi
 
-echo 'Olá,' $SUDO_USER
+if [ -z "$SUDO_USER" ]; then
+  echo "Erro: SUDO_USER não detectado. Use 'sudo ./instala-tudo.sh'."
+  exit 1
+fi
+
+echo "Olá, $SUDO_USER. Iniciando automação de ambiente para Pop!_OS 24.04..."
 
 while true; do
-  read -p "Deseja instalar? [s/n] " sn
+  read -p "Deseja instalar o ambiente completo? [s/n] " sn
   case $sn in
-  [Ss]*)
-    instalar
-    break
-    ;;
-  [Nn]*) break ;;
-  *) echo "Responda sim[s] ou não[n]." ;;
+    [Ss]*) instalar; break ;;
+    [Nn]*) break ;;
+    *) echo "Responda sim[s] ou não[n]." ;;
   esac
 done
 
 while true; do
-  read -p "Deseja remover? [s/n] " sn
+  read -p "Deseja remover o ambiente (limpeza completa)? [s/n] " sn
   case $sn in
-  [Ss]*)
-    remover
-    break
-    ;;
-  [Nn]*) break ;;
-  *) echo "Responda sim[s] ou não[n]." ;;
+    [Ss]*) remover; break ;;
+    [Nn]*) break ;;
+    *) echo "Responda sim[s] ou não[n]." ;;
   esac
 done
