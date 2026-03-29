@@ -263,11 +263,9 @@ instalarFlatpaks() {
   echo 'Configurando suporte a Flatpak...'
   if ! command -v flatpak &> /dev/null; then
     apt install -y flatpak
+    flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
   fi
   
-  # Adiciona o flathub se não existir
-  flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-
   echo 'Instalando apps via Flatpak...'
   flatpak install --assumeyes flathub com.sublimetext.three
   flatpak install --assumeyes flathub com.getpostman.Postman
@@ -284,7 +282,6 @@ removerFlatpaks() {
   flatpak uninstall --assumeyes com.sublimetext.three || true
   flatpak uninstall --assumeyes com.getpostman.Postman || true
   flatpak uninstall --unused --assumeyes || true
-  flatpak remote-delete --force flathub >/dev/null 2>&1 || true
   rm -f "$USER_HOME/.config/mimeapps.list"
 }
 
