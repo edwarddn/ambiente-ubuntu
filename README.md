@@ -1,10 +1,17 @@
-# Automatize a infraestrutura (Pop!_OS Edition)
+# Automatize a infraestrutura (Pop!_OS & Ubuntu Edition)
 
-Este script automatiza a configuração de um ambiente de desenvolvimento completo e moderno, otimizado para o **Pop!_OS 24.04 LTS**.
+Este script automatiza a configuração de um ambiente de desenvolvimento completo e moderno, focado em produtividade e arquitetura limpa.
 
 ### Requisitos do SO
 
-- Pop!_OS 24.04 (LTS)
+- **Pop!_OS 24.04 LTS** (Recomendado - Suporte nativo completo)
+- **Ubuntu 24.04 LTS** (Veja a nota abaixo sobre Flatpak)
+
+> ⚠️ **Nota para usuários de Ubuntu:** O Ubuntu não traz o suporte a Flatpak habilitado por padrão. Para que o script funcione corretamente no Ubuntu, você deve configurar o Flatpak e o repositório Flathub previamente:
+> ```bash
+> sudo apt update && sudo apt install flatpak
+> flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+> ```
 
 ### O que o script configura?
 
